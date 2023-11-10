@@ -1,34 +1,22 @@
-'''
-python main.py -info drq -env Hopper-v2 -seed 0 -eval_every 1000 -frames 100000 -eval_runs 10 -gpu_id 0 -updates_per_step 20 -method sac -target_entropy -1.0 -target_drop_rate 0.005 -layer_norm 1
-droq-8400s, sac=8863s, redq= 2x time
-python main.py -info sac -env Hopper-v2 -seed 0 -eval_every 1000 -frames 100000 -eval_runs 10  -gpu_id 0 -updates_per_step 20 -method sac -target_entropy -1.0 
-python main.py -info drq -env FishStationary-v0 -seed 0 -eval_every 1000 -frames 100000 -eval_runs 10 -gpu_id 0 -updates_per_step 20 -method sac -target_entropy 0 -target_drop_rate 0.005 -layer_norm 1
-
-<class 'rlutils.envs.fishEnvs.FishMoving'>
-<class 'rlutils.envs.fishEnvs.FishMovingCNN'>
-<class 'rlutils.envs.fishEnvs.FishMovingCNNContinous'>
-<class 'rlutils.envs.fishEnvs.FishMovingCNNEncoder'>
-<class 'rlutils.envs.fishEnvs.FishMovingVisualServo'>
-<class 'rlutils.envs.fishEnvs.FishStationary'>
-<class 'rlutils.envs.fishEnvs.FishStationaryCNN'>
-<class 'rlutils.envs.fishEnvs.FishStationaryCNNEncoder'>
-<class 'rlutils.envs.fishEnvs.FishStationaryContinousCNNEncoder'>
-'''
 import os
 import argparse
 import datetime
 import gym
+
 from agent import SacAgent
+
 # TODO use shared util.utilTH in SAC-extention
 from util.utilsTH import SparseRewardEnv
+
 # TODO remove IQN agent part
 #from IQNagent import IQNSacAgent
+
 import customenvs
 customenvs.register_mbpo_environments()
+
 from agent4profile import SacAgent4Profile
-from rlutils.envs import *
+from rlutils.envs import * #register_envs
 # register_envs()
-from timeit import default_timer as timer
 
 def run():
     parser = argparse.ArgumentParser()
@@ -68,6 +56,7 @@ def run():
     # th 20210724
     parser.add_argument("-target_entropy", type=float, default=None, help="target entropy , default=Num action")
     # for MBPO and redq setting, Hopper: -1, HC: -3, Walker: -3, Ant: -4, Humaoid: -2
+    #
     parser.add_argument("-method", default="sac", choices=["sac", "redq", "duvn", "monosac"], help="method, default=sac")
     # learning per steps
     parser.add_argument("-batch_size", type=int, default=256,
@@ -114,6 +103,7 @@ def run():
         'eval_runs': args.eval_runs,
         'huber': args.huber, # TODO remove
         'layer_norm': args.layer_norm,
+        #
         'target_entropy': args.target_entropy,
         'method': args.method,
         'target_drop_rate': args.target_drop_rate,
@@ -128,7 +118,8 @@ def run():
         env = SparseRewardEnv(env, rew_thresh=args.sparsity_th)
         env._max_episode_steps = env.wrapped_env._max_episode_steps
 
-    label = args.env + "_" + str(datetime.datetime.now().strftime("%Y-%m-%d%H:%M:%S"))#.split(" ")[0]
+    label = args.env + "_" + str(datetime.datetime.now()).split(" ")[0]
+    # label = args.env + "_" + str(datetime.datetime.now())
     log_dir = os.path.join('runs', args.info, label)
 
     if args.distributional: # TODO remove
@@ -142,8 +133,6 @@ def run():
             agent = SacAgent(env=env, log_dir=log_dir, **configs)
     agent.run()
 
+
 if __name__ == '__main__':
-    start = timer()
     run()
-    end = timer()
-    print("Total time: ", end - start)
