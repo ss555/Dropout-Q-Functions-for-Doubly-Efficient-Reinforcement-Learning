@@ -28,7 +28,6 @@ customenvs.register_mbpo_environments()
 from agent4profile import SacAgent4Profile
 from rlutils.envs import *
 # register_envs()
-
 from timeit import default_timer as timer
 
 def run():
@@ -69,7 +68,6 @@ def run():
     # th 20210724
     parser.add_argument("-target_entropy", type=float, default=None, help="target entropy , default=Num action")
     # for MBPO and redq setting, Hopper: -1, HC: -3, Walker: -3, Ant: -4, Humaoid: -2
-    #
     parser.add_argument("-method", default="sac", choices=["sac", "redq", "duvn", "monosac"], help="method, default=sac")
     # learning per steps
     parser.add_argument("-batch_size", type=int, default=256,
