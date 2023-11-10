@@ -10,4 +10,4 @@ __pycache__/
 **/*.csv
 **/*.pth
 **/*events.out.tfevents*
-./idea/
+.idea/

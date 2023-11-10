@@ -235,9 +235,9 @@ class SacAgent:
         if self.episodes % self.log_interval == 0:
             self.writer.add_scalar('reward/train', self.train_rewards.get(), self.steps)
 
-        print(f'episode: {self.episodes:<4}  '
-              f'episode steps: {episode_steps:<4}  '
-              f'reward: {episode_reward:<5.1f}')
+        print(f'episode: {self.episodes}  '
+              f'episode steps: {episode_steps}  '
+              f'reward: {episode_reward}')
 
     def learn(self):
         self.learning_steps += 1
@@ -365,7 +365,6 @@ class SacAgent:
                 state = next_state
                 # MCE store all (state, action, reward) TH 20210723
                 sar_buf[i].append([state, action, reward])
-
             returns[i] = episode_reward
 
         mean_return = np.mean(returns)
