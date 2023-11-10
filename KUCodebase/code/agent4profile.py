@@ -4,21 +4,16 @@ import torch
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 from rltorch.memory import MultiStepMemory, PrioritizedMemory
-
 from model import TwinnedQNetwork, GaussianPolicy, RandomizedEnsembleNetwork
 from utils import grad_false, hard_update, soft_update, to_batch, update_params, RunningMeanStats
-
 from collections import deque
 import itertools
 import math
-
-# 20210813
 import torch.autograd.profiler as profiler
 import sys
 
 # TODO merge with agent.py
 class SacAgent4Profile: # created in 20210813
-
     def __init__(self, env, log_dir, num_steps=3000000, batch_size=256,
                  lr=0.0003, hidden_units=[256, 256], memory_size=1e6,
                  gamma=0.99, tau=0.005, entropy_tuning=True, ent_coef=0.2,
@@ -264,8 +259,6 @@ class SacAgent4Profile: # created in 20210813
                     with open(self.log_dir + "/" + "total_critc_params.csv", "a") as f:
                         f.write(str(num_param))
                         f.flush()
-
-
                     sys.exit()
 
 
@@ -401,7 +394,7 @@ class SacAgent4Profile: # created in 20210813
         returns = np.zeros((episodes,), dtype=np.float32)
 
         # for return bias estimation TH
-        sar_buf = [[] for _ in range(episodes) ] # episodes x (satte, action , reward)
+        sar_buf = [[] for _ in range(episodes)] # episodes x (satte, action , reward)
 
         for i in range(episodes):
             state = self.env.reset()

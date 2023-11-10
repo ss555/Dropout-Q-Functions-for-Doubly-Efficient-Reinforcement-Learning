@@ -4,7 +4,6 @@ import torch
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 from rltorch.memory import MultiStepMemory, PrioritizedMemory
-
 from model import TwinnedQNetwork, GaussianPolicy, RandomizedEnsembleNetwork
 from utils import grad_false, hard_update, soft_update, to_batch, update_params, RunningMeanStats
 
@@ -438,3 +437,4 @@ class SacAgent:
     def __del__(self):
         self.writer.close()
         self.env.close()
+#python main.py -info drq -env Hopper-v2 -seed 0 -eval_every 1000 -frames 100000 -eval_runs 10 -updates_per_step 20 -method sac -target_entropy -1.0 -target_drop_rate 0.005 -layer_norm 1

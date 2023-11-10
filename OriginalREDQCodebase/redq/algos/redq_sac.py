@@ -41,7 +41,6 @@ class REDQSACAgent(object):
         self.policy_net = TanhGaussianPolicy(obs_dim, act_dim, hidden_sizes, action_limit=act_limit).to(device)
         self.q_net_list, self.q_target_net_list = [], []
         for q_i in range(num_Q):
-            # new_q_net = Mlp(obs_dim + act_dim, 1, hidden_sizes).to(device)
             new_q_net = Mlp(obs_dim + act_dim, 1, hidden_sizes, target_drop_rate=target_drop_rate, layer_norm = layer_norm).to(device)
             self.q_net_list.append(new_q_net)
             # new_q_target_net = Mlp(obs_dim + act_dim, 1, hidden_sizes).to(device)
@@ -115,8 +114,7 @@ class REDQSACAgent(object):
         # given an observation, output a deterministic action in numpy form
         with torch.no_grad():
             obs_tensor = torch.Tensor(obs).unsqueeze(0).to(self.device)
-            action_tensor = self.policy_net.forward(obs_tensor, deterministic=True,
-                                         return_log_prob=False)[0]
+            action_tensor = self.policy_net.forward(obs_tensor, deterministic=True, return_log_prob=False)[0]
             action = action_tensor.cpu().numpy().reshape(-1)
         return action
 
