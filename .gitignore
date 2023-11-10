@@ -2,3 +2,12 @@ logs/
 __pycache__/
 .vscode/
 *.log
+*.log
+**/*.zip
+**/*.npz
+**/*.MP4
+**/*.avi
+**/*.csv
+**/*.pth
+**/*events.out.tfevents*
+.idea/
