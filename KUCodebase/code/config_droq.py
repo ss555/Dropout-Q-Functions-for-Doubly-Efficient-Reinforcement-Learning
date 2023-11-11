@@ -1,4 +1,3 @@
-
 hopper_v2={
   "info": "drq",
   "seed": 0,

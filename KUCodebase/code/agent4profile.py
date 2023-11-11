@@ -11,7 +11,6 @@ import itertools
 import math
 import torch.autograd.profiler as profiler
 import sys
-
 # TODO merge with agent.py
 class SacAgent4Profile: # created in 20210813
     def __init__(self, env, log_dir, num_steps=3000000, batch_size=256,
@@ -23,7 +22,7 @@ class SacAgent4Profile: # created in 20210813
                  eval_interval=1000, cuda=0, seed=0,
                  # added by TH 20210707
                  eval_runs=1, huber=0, layer_norm=0,
-                 method=None, target_entropy=None, target_drop_rate=0.0, critic_update_delay=1):
+                 method=None, target_entropy=None, target_drop_rate=0.0, critic_update_delay=1, ):
         self.env = env
 
         torch.manual_seed(seed)

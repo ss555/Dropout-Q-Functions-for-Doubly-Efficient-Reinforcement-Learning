@@ -113,7 +113,8 @@ class SacAgent:
 
         self.steps = 0
         self.learning_steps = 0
-        self.episodes = 0
+        self.episodes_num = 0
+        self.eval_episodes_interval = 20
         self.num_steps = num_steps
         self.tau = tau
         self.per = per
@@ -223,10 +224,11 @@ class SacAgent:
             if self.is_update():
                 self.learn()
 
-            if self.steps % self.eval_interval == 0:
-                self.evaluate()
-                self.save_models()
-
+        self.episodes_num += 1
+        if self.episodes_num % self.eval_episodes_interval == 0:
+        # if self.steps % self.eval_interval == 0:
+            self.evaluate()
+            self.save_models()
             state = next_state
 
         # We log running mean of training rewards.
