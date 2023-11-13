@@ -24,6 +24,7 @@ class SacAgent:
                  eval_runs=1, huber=0, layer_norm=0,
                  method=None, target_entropy=None, target_drop_rate=0.0, critic_update_delay=1):
         self.env = env
+        self.episodes = 0
 
         torch.manual_seed(seed)
         np.random.seed(seed)
@@ -243,7 +244,6 @@ class SacAgent:
 
     def learn(self):
         self.learning_steps += 1
-
         # critic update
         if (self.learning_steps - 1) % self.critic_update_delay == 0:
             for _ in range(self.updates_per_step):
@@ -267,12 +267,16 @@ class SacAgent:
                     update_params(self.q1_optim, self.critic.Q1, q1_loss, self.grad_clip)
                     update_params(self.q2_optim, self.critic.Q2, q2_loss, self.grad_clip)
 
+
                 if self.learning_steps % self.target_update_interval == 0:
                     soft_update(self.critic_target, self.critic, self.tau)
 
                 if self.per:
                     # update priority weights
                     self.memory.update_priority(indices, errors.cpu().numpy())
+
+            self.writer.add_scalar('loss/critic_1', q1_loss, self.steps)
+            self.writer.add_scalar('loss/critic_2', q2_loss, self.steps)
 
         # policy and alpha update
         if self.per:
@@ -342,7 +346,8 @@ class SacAgent:
         # Policy objective is maximization of (Q + alpha * entropy) with
         # priority weights.
         policy_loss = torch.mean((- q - self.alpha * entropy) * weights)
-
+        self.writer.add_scalar('policy_loss/train', policy_loss.item(), self.steps)
+        self.writer.add_scalar('entropy/train', entropy.mean().item(), self.steps)
         return policy_loss, entropy
 
     def calc_entropy_loss(self, entropy, weights):

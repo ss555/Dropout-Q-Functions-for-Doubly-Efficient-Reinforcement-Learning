@@ -59,7 +59,6 @@ class RandomizedEnsembleNetwork(BaseNetwork):
     def __init__(self, num_inputs, num_actions, hidden_units=[256, 256],
                  initializer='xavier', layer_norm=0, drop_rate=0.0, N=10):
         super(RandomizedEnsembleNetwork, self).__init__()
-
         self.N = N
         self.indices = list(range(N))
         for i in range(N):
