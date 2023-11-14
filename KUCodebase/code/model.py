@@ -125,6 +125,10 @@ class GaussianPolicy(BaseNetwork):
         # calculate entropies
         log_probs = normals.log_prob(xs)\
             - torch.log(1 - actions.pow(2) + self.eps)
-        entropies = -log_probs.sum(dim=1, keepdim=True)
+        if len(log_probs.shape)==1:
+            entropies = -log_probs
+        else:
+            entropies = -log_probs.sum(dim=1, keepdim=True)
+
 
         return actions, entropies, torch.tanh(means)

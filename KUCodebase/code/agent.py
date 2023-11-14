@@ -222,8 +222,9 @@ class SacAgent:
                 # signal to calculate multi-step rewards.
                 self.memory.append(state, action, reward, next_state, masked_done, episode_done=done)
 
-            if self.is_update():
-                self.learn()
+            # if self.is_update():
+            #     self.learn()
+        self.learn()
 
         self.episodes_num += 1
         if self.episodes_num % self.eval_episodes_interval == 0:

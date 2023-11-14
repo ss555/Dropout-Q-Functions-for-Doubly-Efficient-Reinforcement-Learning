@@ -14,6 +14,7 @@ python main.py -info drq -env FishStationary-v0 -seed 0 -eval_every 1000 -frames
 <class 'rlutils.envs.fishEnvs.FishStationaryCNNEncoder'>
 <class 'rlutils.envs.fishEnvs.FishStationaryContinousCNNEncoder'>
 '''
+
 import os
 import argparse
 import datetime
@@ -27,6 +28,7 @@ import customenvs
 customenvs.register_mbpo_environments()
 from agent4profile import SacAgent4Profile
 from rlutils.envs import *
+from rlutils.env_wrappers import LoggerWrap
 # register_envs()
 from timeit import default_timer as timer
 
@@ -109,8 +111,6 @@ def run():
         'eval_interval': args.eval_every, # 10000,
         'cuda': args.gpu_id, # args.cuda,
         'seed': args.seed,
-
-        # adde by TH
         'eval_runs': args.eval_runs,
         'huber': args.huber, # TODO remove
         'layer_norm': args.layer_norm,
@@ -126,15 +126,21 @@ def run():
     if args.sparsity_th > 0.0 :
         print("Evaluation in sparse reward setting with lambda = " + str(args.sparsity_th))
         env = SparseRewardEnv(env, rew_thresh=args.sparsity_th)
+        #log aLL
+    os.makedirs('./logs', exist_ok=True)
+    monitor_dir = os.path.join(os.path.dirname(__file__),'./logs')
+    print(monitor_dir)
+    env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
+    try:
         env._max_episode_steps = env.wrapped_env._max_episode_steps
+    except:
+        env._max_episode_steps = 768
 
     label = args.env + "_" + str(datetime.datetime.now().strftime("%Y-%m-%d%H:%M:%S"))#.split(" ")[0]
     log_dir = os.path.join('runs', args.info, label)
 
     if args.distributional: # TODO remove
         raise NotImplementedError()
-        #print(" Use IQN agent")
-        #agent = IQNSacAgent(env=env, log_dir=log_dir, **configs)
     else:
         if args.profile:
             agent = SacAgent4Profile(env=env, log_dir=log_dir, **configs)
