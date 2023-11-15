@@ -56,7 +56,7 @@ def run():
     'eval_interval': 1000,
     'cuda': 0,
     'seed': 0,
-    'eval_runs': 10,
+    'eval_runs': 1,
     'huber': 0,
     'layer_norm': 1,
     'target_entropy': -1.0,

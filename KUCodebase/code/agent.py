@@ -128,7 +128,6 @@ class SacAgent:
         self.log_interval = log_interval
         self.target_update_interval = target_update_interval
         self.eval_interval = eval_interval
-        #
         self.eval_runs = eval_runs
         self.huber = huber
         self.multi_step = multi_step
@@ -221,17 +220,19 @@ class SacAgent:
                 # We need to give true done signal with addition to masked done
                 # signal to calculate multi-step rewards.
                 self.memory.append(state, action, reward, next_state, masked_done, episode_done=done)
-
-            # if self.is_update():
-            #     self.learn()
-        self.learn()
+            state = next_state
+            if self.is_update():
+                self.learn()
+            #
+        # if self.is_update():
+        #     self.learn()
 
         self.episodes_num += 1
         if self.episodes_num % self.eval_episodes_interval == 0:
         # if self.steps % self.eval_interval == 0:
             self.evaluate()
             self.save_models()
-            state = next_state
+
 
         # We log running mean of training rewards.
         self.train_rewards.append(episode_reward)
@@ -276,8 +277,8 @@ class SacAgent:
                     # update priority weights
                     self.memory.update_priority(indices, errors.cpu().numpy())
 
-            self.writer.add_scalar('loss/critic_1', q1_loss, self.steps)
-            self.writer.add_scalar('loss/critic_2', q2_loss, self.steps)
+        # self.writer.add_scalar('loss/critic_1', q1_loss, self.steps)
+        # self.writer.add_scalar('loss/critic_2', q2_loss, self.steps)
 
         # policy and alpha update
         if self.per:
@@ -293,6 +294,7 @@ class SacAgent:
             entropy_loss = self.calc_entropy_loss(entropies, weights)
             update_params(self.alpha_optim, None, entropy_loss)
             self.alpha = self.log_alpha.exp()
+
 
     def calc_critic_4redq_loss(self, batch, weights):
         states, actions, rewards, next_states, dones = batch
