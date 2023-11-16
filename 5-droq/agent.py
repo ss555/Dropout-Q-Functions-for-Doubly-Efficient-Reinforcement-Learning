@@ -24,7 +24,7 @@ class SacAgent:
                  eval_interval=1000, cuda=0, seed=0,
                  # added by TH 20210707
                  eval_runs=1, huber=0, layer_norm=0,
-                 method=None, target_entropy=None, target_drop_rate=0.0, critic_update_delay=1, gradients_step=1):
+                 method=None, target_entropy=None, target_drop_rate=0.0, critic_update_delay=1, gradients_step=1, eval_episodes_interval=20):
         self.env = env
         self.episodes = 0
         self.gradients_step= gradients_step
@@ -118,7 +118,7 @@ class SacAgent:
         self.steps = 0
         self.learning_steps = 0
         self.episodes_num = 0
-        self.eval_episodes_interval = 20
+        self.eval_episodes_interval = eval_episodes_interval#20
         self.num_steps = num_steps
         self.tau = tau
         self.per = per

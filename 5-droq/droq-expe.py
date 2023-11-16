@@ -28,9 +28,9 @@ def run():
     # connect to the server
     s.connect((HOST, PORT))
     # MAXIMIZE SPEED
-    env, params = make_red_yellow_env_speed(vid, s, monitor_dir, len_episode=128, tau=tau, discrete_actions=False, phi=40, sb3=False)
+    env, params = make_red_yellow_env_speed(vid, s, monitor_dir, len_episode=90, tau=tau, discrete_actions=False, phi=30, sb3=False)
     configs = {'num_steps': 100000,
-    'batch_size': 512,
+    'batch_size': 256,
     'lr': 0.0003,
     'hidden_units': [256, 256],
     'memory_size': 1000000.0,
@@ -59,7 +59,6 @@ def run():
     'method': 'sac',
     'target_drop_rate': 0.005,
     'critic_update_delay': 1}
-
 
     label = "fish_exp-speed-" + str(datetime.now()).split(" ")[0]
     # label = args.env + "_" + str(datetime.datetime.now())
