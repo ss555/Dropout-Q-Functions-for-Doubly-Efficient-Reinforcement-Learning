@@ -46,7 +46,7 @@ def run():
     'grad_clip': None,
     'critic_updates_per_step': 20,#20,
     'gradients_step': 128,#20,
-    'start_steps': 5000,
+    'start_steps': 0,
     'log_interval': 10,
     'target_update_interval': 1,
     'eval_interval': 1000,

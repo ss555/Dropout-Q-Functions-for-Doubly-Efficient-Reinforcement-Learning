@@ -195,14 +195,14 @@ class SacAgent:
 
         while not done:
             action = self.act(state)
-            next_state, reward, done, _ = self.env.step(action)
+            next_state, reward, done, info = self.env.step(action)
             self.steps += 1
             episode_steps += 1
             episode_reward += reward
 
             # ignore done if the agent reach time horizons
             # (set done=True only when the agent fails)
-            if episode_steps >= self.env._max_episode_steps:
+            if episode_steps >= self.env._max_episode_steps or info["TimeLimit.truncated"]:
                 masked_done = False
             else:
                 masked_done = done
@@ -259,17 +259,10 @@ class SacAgent:
                         # set priority weights to 1 when we don't use PER.
                         weights = 1.
 
-                    if self.method == "redq":
-                        losses, errors, mean_q1, mean_q2 = self.calc_critic_4redq_loss(batch, weights)
-                        for i in range(self.critic.N):
-                            update_params(getattr(self, "q" + str(i) + "_optim"),
-                                                  getattr(self.critic, "Q" + str(i)),
-                                                  losses[i], self.grad_clip)
-                    else:
-                        q1_loss, q2_loss, errors, mean_q1, mean_q2 = self.calc_critic_loss(batch, weights)
+                    q1_loss, q2_loss, errors, mean_q1, mean_q2 = self.calc_critic_loss(batch, weights)
 
-                        update_params(self.q1_optim, self.critic.Q1, q1_loss, self.grad_clip)
-                        update_params(self.q2_optim, self.critic.Q2, q2_loss, self.grad_clip)
+                    update_params(self.q1_optim, self.critic.Q1, q1_loss, self.grad_clip)
+                    update_params(self.q2_optim, self.critic.Q2, q2_loss, self.grad_clip)
 
 
                     if self.learning_steps % self.target_update_interval == 0:
@@ -453,4 +446,3 @@ class SacAgent:
     def __del__(self):
         self.writer.close()
         self.env.close()
-#python main.py -info drq -env Hopper-v2 -seed 0 -eval_every 1000 -frames 100000 -eval_runs 10 -critic_updates_per_step 20 -method sac -target_entropy -1.0 -target_drop_rate 0.005 -layer_norm 1
