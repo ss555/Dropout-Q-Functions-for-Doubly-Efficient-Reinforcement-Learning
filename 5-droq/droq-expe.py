@@ -45,6 +45,7 @@ def run():
     'beta_annealing': 3e-07,
     'grad_clip': None,
     'critic_updates_per_step': 20,#20,
+    'eval_episodes_interval': 50,
     'gradients_step': 128,#20,
     'start_steps': 0,
     'log_interval': 10,
