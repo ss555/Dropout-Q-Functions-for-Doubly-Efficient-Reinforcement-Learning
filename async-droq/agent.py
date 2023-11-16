@@ -1,4 +1,6 @@
 import os
+import time
+
 import numpy as np
 import torch
 from torch.optim import Adam
@@ -6,13 +8,13 @@ from torch.utils.tensorboard import SummaryWriter
 from rltorch.memory import MultiStepMemory, PrioritizedMemory
 from model import TwinnedQNetwork, GaussianPolicy, RandomizedEnsembleNetwork
 from utils import grad_false, hard_update, soft_update, to_batch, update_params, RunningMeanStats
+
 from collections import deque
 import itertools
 import math
-import torch.autograd.profiler as profiler
-import sys
-# TODO merge with agent.py
-class SacAgent4Profile: # created in 20210813
+import multiprocessing as mp
+class SacAgent:
+
     def __init__(self, env, log_dir, num_steps=3000000, batch_size=256,
                  lr=0.0003, hidden_units=[256, 256], memory_size=1e6,
                  gamma=0.99, tau=0.005, entropy_tuning=True, ent_coef=0.2,
@@ -22,8 +24,9 @@ class SacAgent4Profile: # created in 20210813
                  eval_interval=1000, cuda=0, seed=0,
                  # added by TH 20210707
                  eval_runs=1, huber=0, layer_norm=0,
-                 method=None, target_entropy=None, target_drop_rate=0.0, critic_update_delay=1, ):
+                 method=None, target_entropy=None, target_drop_rate=0.0, critic_update_delay=1):
         self.env = env
+        self.episodes = 0
 
         torch.manual_seed(seed)
         np.random.seed(seed)
@@ -113,7 +116,8 @@ class SacAgent4Profile: # created in 20210813
 
         self.steps = 0
         self.learning_steps = 0
-        self.episodes = 0
+        self.episodes_num = 0
+        self.eval_episodes_interval = 20
         self.num_steps = num_steps
         self.tau = tau
         self.per = per
@@ -126,7 +130,6 @@ class SacAgent4Profile: # created in 20210813
         self.log_interval = log_interval
         self.target_update_interval = target_update_interval
         self.eval_interval = eval_interval
-        #
         self.eval_runs = eval_runs
         self.huber = huber
         self.multi_step = multi_step
@@ -173,6 +176,9 @@ class SacAgent4Profile: # created in 20210813
                 next_q = torch.min(next_q1, next_q2) + self.alpha * next_entropies
             elif self.method == "duvn":
                 next_q = next_q1 + self.alpha * next_entropies # discard q2
+            elif self.method == "monosac":
+                next_q2, _ = self.critic_target(next_states, next_actions)
+                next_q = torch.min(next_q1, next_q2) + self.alpha * next_entropies
             else:
                 raise NotImplementedError()
         # rescale rewards by num step TH20210705
@@ -187,86 +193,50 @@ class SacAgent4Profile: # created in 20210813
         state = self.env.reset()
 
         while not done:
-            with profiler.profile(record_shapes=False, use_cuda=torch.cuda.is_available(), profile_memory=True, with_stack=True) as prof:
-                with profiler.record_function("Whole_lines3-11"):
-                    action = self.act(state)
-                    next_state, reward, done, _ = self.env.step(action)
-                    self.steps += 1
-                    episode_steps += 1
-                    episode_reward += reward
+            action = self.act(state)
+            next_state, reward, done, _ = self.env.step(action)
+            self.steps += 1
+            episode_steps += 1
+            episode_reward += reward
 
-                    # ignore done if the agent reach time horizons
-                    # (set done=True only when the agent fails)
-                    if episode_steps >= self.env._max_episode_steps:
-                        masked_done = False
-                    else:
-                        masked_done = done
+            # ignore done if the agent reach time horizons
+            # (set done=True only when the agent fails)
+            if episode_steps >= self.env._max_episode_steps:
+                masked_done = False
+            else:
+                masked_done = done
 
-                    if self.per:
-                        batch = to_batch(
-                            state, action, reward, next_state, masked_done,
-                            self.device)
-                        with torch.no_grad():
-                            curr_q1, curr_q2 = self.calc_current_q(*batch)
-                        target_q = self.calc_target_q(*batch)
-                        # fixed by tH20210715
-                        error = (0.5 * torch.abs(curr_q1 - target_q) + 0.5 * torch.abs(curr_q2 - target_q)).item()
-                        # We need to give true done signal with addition to masked done
-                        # signal to calculate multi-step rewards.
-                        self.memory.append(state, action, reward, next_state, masked_done, error, episode_done=done)
-                    else:
-                        # We need to give true done signal with addition to masked done
-                        # signal to calculate multi-step rewards.
-                        self.memory.append(state, action, reward, next_state, masked_done, episode_done=done)
-
-                    if self.is_update():
-                        self.learn()
-            if self.is_update():
-                res = prof.key_averages(group_by_stack_n=1).table(sort_by="cpu_time_total", row_limit=10)
-                print(res)
-                a = prof.key_averages(group_by_stack_n=1)
-                #
-                with open(self.log_dir + "/" + "cpu_profile.csv", "a") as f:
-                    f.write(res)
-                    f.flush()
-                res = prof.key_averages(group_by_stack_n=1).table(sort_by="cpu_memory_usage", row_limit=10)
-                print(res)
-                #
-                with open(self.log_dir + "/" + "memory_profile.csv", "a") as f:
-                    f.write(res)
-                    f.flush()
-                if torch.cuda.is_available():
-                    res = prof.key_averages(group_by_stack_n=1).table(sort_by="cuda_time_total", row_limit=10)
-                    print(res)
-                    #
-                    with open(self.log_dir + "/" + "cuda_profile.csv", "a") as f:
-                        f.write(res)
-                        f.flush()
-                    res = prof.key_averages(group_by_stack_n=1).table(sort_by="cuda_memory_usage", row_limit=10)
-                    print(res)
-                    #
-                    with open(self.log_dir + "/" + "cuda_memory_profile.csv", "a") as f:
-                        f.write(res)
-                        f.flush()
-                if not hasattr(self, "num_rec"):
-                    self.num_rec = 0
-                self.num_rec += 1
-                if self.num_rec > 4:
-                    num_param = sum(p.numel() for p in self.critic.parameters() if p.requires_grad)
-                    num_param += sum(p.numel() for p in self.critic_target.parameters() if p.requires_grad)
-                    #
-                    with open(self.log_dir + "/" + "total_critc_params.csv", "a") as f:
-                        f.write(str(num_param))
-                        f.flush()
-                    sys.exit()
-
-
-
-            if self.steps % self.eval_interval == 0:
-                self.evaluate()
-                self.save_models()
-
+            if self.per:
+                batch = to_batch(
+                    state, action, reward, next_state, masked_done,
+                    self.device)
+                with torch.no_grad():
+                    curr_q1, curr_q2 = self.calc_current_q(*batch)
+                target_q = self.calc_target_q(*batch)
+                error = (0.5 * torch.abs(curr_q1 - target_q) + 0.5 * torch.abs(curr_q2 - target_q)).item()
+                # We need to give true done signal with addition to masked done
+                # signal to calculate multi-step rewards.
+                self.memory.append(state, action, reward, next_state, masked_done, error, episode_done=done)
+            else:
+                # We need to give true done signal with addition to masked done
+                # signal to calculate multi-step rewards.
+                self.memory.append(state, action, reward, next_state, masked_done, episode_done=done)
             state = next_state
+
+            if self.is_update():
+                self.critic.share_memory()
+                self.policy.share_memory()
+                self.learn()
+            #
+        # if self.is_update():
+        #     self.learn()
+
+        self.episodes_num += 1
+        if self.episodes_num % self.eval_episodes_interval == 0:
+        # if self.steps % self.eval_interval == 0:
+            self.evaluate()
+            self.save_models()
+
 
         # We log running mean of training rewards.
         self.train_rewards.append(episode_reward)
@@ -274,59 +244,64 @@ class SacAgent4Profile: # created in 20210813
         if self.episodes % self.log_interval == 0:
             self.writer.add_scalar('reward/train', self.train_rewards.get(), self.steps)
 
-        print(f'episode: {self.episodes:<4}  '
-              f'episode steps: {episode_steps:<4}  '
-              f'reward: {episode_reward:<5.1f}')
+        print(f'episode: {self.episodes}  '
+              f'episode steps: {episode_steps}  '
+              f'reward: {episode_reward}')
 
     def learn(self):
         self.learning_steps += 1
-
         # critic update
-        with profiler.record_function("TrainingQs_lines4-8"):
-            if (self.learning_steps - 1) % self.critic_update_delay == 0:
-                for _ in range(self.critic_updates_per_step):
-                    if self.per:
-                        # batch with indices and priority weights
-                        batch, indices, weights = self.memory.sample(self.batch_size)
-                    else:
-                        batch = self.memory.sample(self.batch_size)
-                        # set priority weights to 1 when we don't use PER.
-                        weights = 1.
+        if (self.learning_steps - 1) % self.critic_update_delay == 0:
+            for _ in range(self.critic_updates_per_step):
+                if self.per:
+                    # batch with indices and priority weights
+                    batch, indices, weights = self.memory.sample(self.batch_size)
+                else:
+                    batch = self.memory.sample(self.batch_size)
+                    # set priority weights to 1 when we don't use PER.
+                    weights = 1.
 
-                    if self.method == "redq":
-                        losses, errors, mean_q1, mean_q2 = self.calc_critic_4redq_loss(batch, weights)
-                        for i in range(self.critic.N):
-                            update_params(getattr(self, "q" + str(i) + "_optim"),
-                                                  getattr(self.critic, "Q" + str(i)),
-                                                  losses[i], self.grad_clip)
-                    else:
-                        q1_loss, q2_loss, errors, mean_q1, mean_q2 = self.calc_critic_loss(batch, weights)
+                if self.method == "redq":
+                    losses, errors, mean_q1, mean_q2 = self.calc_critic_4redq_loss(batch, weights)
+                    for i in range(self.critic.N):
+                        update_params(getattr(self, "q" + str(i) + "_optim"),
+                                              getattr(self.critic, "Q" + str(i)),
+                                              losses[i], self.grad_clip)
+                else:
+                    q1_loss, q2_loss, errors, mean_q1, mean_q2 = self.calc_critic_loss(batch, weights)
 
-                        update_params(self.q1_optim, self.critic.Q1, q1_loss, self.grad_clip)
-                        update_params(self.q2_optim, self.critic.Q2, q2_loss, self.grad_clip)
+                    update_params(self.q1_optim, self.critic.Q1, q1_loss, self.grad_clip)
+                    update_params(self.q2_optim, self.critic.Q2, q2_loss, self.grad_clip)
 
-                    if self.learning_steps % self.target_update_interval == 0:
-                        soft_update(self.critic_target, self.critic, self.tau)
 
-                    if self.per:
-                        # update priority weights
-                        self.memory.update_priority(indices, errors.cpu().numpy())
+                if self.learning_steps % self.target_update_interval == 0:
+                    soft_update(self.critic_target, self.critic, self.tau)
+
+                if self.per:
+                    # update priority weights
+                    self.memory.update_priority(indices, errors.cpu().numpy())
+
+        self.writer.add_scalar('mean-q/1', mean_q1, self.steps)
+        self.writer.add_scalar('mean-q/2', mean_q2, self.steps)
+
+        self.writer.add_scalar('loss/critic_1', q1_loss, self.steps)
+        self.writer.add_scalar('loss/critic_2', q2_loss, self.steps)
 
         # policy and alpha update
-        with profiler.record_function("TrainingPolicy_line10"):
-            if self.per:
-                batch, indices, weights = self.memory.sample(self.batch_size)
-            else:
-                batch = self.memory.sample(self.batch_size)
-                weights = 1.
+        if self.per:
+            batch, indices, weights = self.memory.sample(self.batch_size)
+        else:
+            batch = self.memory.sample(self.batch_size)
+            weights = 1.
 
-            policy_loss, entropies = self.calc_policy_loss(batch, weights) # added by tH 20210705
-            update_params(self.policy_optim, self.policy, policy_loss, self.grad_clip)
+        policy_loss, entropies = self.calc_policy_loss(batch, weights) # added by tH 20210705
+        update_params(self.policy_optim, self.policy, policy_loss, self.grad_clip)
 
-            if self.entropy_tuning:
-                entropy_loss = self.calc_entropy_loss(entropies, weights)
-                update_params(self.alpha_optim, None, entropy_loss)
-                self.alpha = self.log_alpha.exp()
+        if self.entropy_tuning:
+            entropy_loss = self.calc_entropy_loss(entropies, weights)
+            update_params(self.alpha_optim, None, entropy_loss)
+            self.alpha = self.log_alpha.exp()
+
 
     def calc_critic_4redq_loss(self, batch, weights):
         states, actions, rewards, next_states, dones = batch
@@ -335,7 +310,7 @@ class SacAgent4Profile: # created in 20210813
         target_q = self.calc_target_q(*batch)
 
         # TD errors for updating priority weights
-        errors = torch.abs(curr_qs[0].detach() - target_q) # TODO better to use average of all errors
+        errors = torch.abs(curr_qs[0].detach() - target_q)
         # We log means of Q to monitor training.
         mean_q1 = curr_qs[0].detach().mean().item()
         mean_q2 = curr_qs[1].detach().mean().item()
@@ -347,7 +322,7 @@ class SacAgent4Profile: # created in 20210813
         return losses, errors, mean_q1, mean_q2
 
     def calc_critic_loss(self, batch, weights):
-        assert self.method == "sac" or self.method == "duvn", "This method is only for sac or duvn method"
+        assert self.method == "sac" or self.method == "duvn" or self.method == "monosac", "This method is only for sac or duvn or monosac method"
 
         curr_q1, curr_q2 = self.calc_current_q(*batch)
         target_q = self.calc_target_q(*batch)
@@ -372,7 +347,7 @@ class SacAgent4Profile: # created in 20210813
             q = self.critic.averageQ(states, sampled_action)
         else:
             q1, q2 = self.critic(states, sampled_action)
-            if self.method == "duvn":
+            if (self.method == "duvn") or (self.method == "monosac"):
                 q2 = q1 # discard q2
             if self.target_drop_rate > 0.0:
                 q = 0.5 * (q1 + q2)
@@ -381,7 +356,8 @@ class SacAgent4Profile: # created in 20210813
         # Policy objective is maximization of (Q + alpha * entropy) with
         # priority weights.
         policy_loss = torch.mean((- q - self.alpha * entropy) * weights)
-
+        self.writer.add_scalar('policy_loss/train', policy_loss.item(), self.steps)
+        self.writer.add_scalar('entropy/train', entropy.mean().item(), self.steps)
         return policy_loss, entropy
 
     def calc_entropy_loss(self, entropy, weights):
@@ -393,7 +369,7 @@ class SacAgent4Profile: # created in 20210813
         returns = np.zeros((episodes,), dtype=np.float32)
 
         # for return bias estimation TH
-        sar_buf = [[] for _ in range(episodes)] # episodes x (satte, action , reward)
+        sar_buf = [[] for _ in range(episodes) ] # episodes x (satte, action , reward)
 
         for i in range(episodes):
             state = self.env.reset()
@@ -406,7 +382,6 @@ class SacAgent4Profile: # created in 20210813
                 state = next_state
                 # MCE store all (state, action, reward) TH 20210723
                 sar_buf[i].append([state, action, reward])
-
             returns[i] = episode_reward
 
         mean_return = np.mean(returns)
@@ -472,9 +447,9 @@ class SacAgent4Profile: # created in 20210813
     def save_models(self):
         self.policy.save(os.path.join(self.model_dir, 'policy.pth'))
         self.critic.save(os.path.join(self.model_dir, 'critic.pth'))
-        self.critic_target.save(
-            os.path.join(self.model_dir, 'critic_target.pth'))
+        self.critic_target.save(os.path.join(self.model_dir, 'critic_target.pth'))
 
     def __del__(self):
         self.writer.close()
         self.env.close()
+#python main.py -info drq -env Hopper-v2 -seed 0 -eval_every 1000 -frames 100000 -eval_runs 10 -critic_updates_per_step 20 -method sac -target_entropy -1.0 -target_drop_rate 0.005 -layer_norm 1

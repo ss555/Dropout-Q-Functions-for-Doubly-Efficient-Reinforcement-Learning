@@ -19,7 +19,7 @@ class SacAgent:
                  lr=0.0003, hidden_units=[256, 256], memory_size=1e6,
                  gamma=0.99, tau=0.005, entropy_tuning=True, ent_coef=0.2,
                  multi_step=1, per=False, alpha=0.6, beta=0.4,
-                 beta_annealing=0.0001, grad_clip=None, updates_per_step=1,
+                 beta_annealing=0.0001, grad_clip=None, critic_updates_per_step=1,
                  start_steps=10000, log_interval=10, target_update_interval=1,
                  eval_interval=1000, cuda=0, seed=0,
                  # added by TH 20210707
@@ -126,7 +126,7 @@ class SacAgent:
         self.gamma_n = gamma ** multi_step
         self.entropy_tuning = entropy_tuning
         self.grad_clip = grad_clip
-        self.updates_per_step = updates_per_step
+        self.critic_updates_per_step = critic_updates_per_step
         self.log_interval = log_interval
         self.target_update_interval = target_update_interval
         self.eval_interval = eval_interval
@@ -250,7 +250,7 @@ class SacAgent:
         self.learning_steps += 1
         # critic update
         if (self.learning_steps - 1) % self.critic_update_delay == 0:
-            for _ in range(self.updates_per_step):
+            for _ in range(self.critic_updates_per_step):
                 if self.per:
                     # batch with indices and priority weights
                     batch, indices, weights = self.memory.sample(self.batch_size)
@@ -451,4 +451,4 @@ class SacAgent:
     def __del__(self):
         self.writer.close()
         self.env.close()
-#python main.py -info drq -env Hopper-v2 -seed 0 -eval_every 1000 -frames 100000 -eval_runs 10 -updates_per_step 20 -method sac -target_entropy -1.0 -target_drop_rate 0.005 -layer_norm 1
+#python main.py -info drq -env Hopper-v2 -seed 0 -eval_every 1000 -frames 100000 -eval_runs 10 -critic_updates_per_step 20 -method sac -target_entropy -1.0 -target_drop_rate 0.005 -layer_norm 1

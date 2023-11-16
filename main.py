@@ -1,8 +1,8 @@
 '''
-python main.py -info drq -env Hopper-v2 -seed 0 -eval_every 1000 -frames 100000 -eval_runs 10 -gpu_id 0 -updates_per_step 20 -method sac -target_entropy -1.0 -target_drop_rate 0.005 -layer_norm 1
+python main.py -info drq -env Hopper-v2 -seed 0 -eval_every 1000 -frames 100000 -eval_runs 10 -gpu_id 0 -critic_updates_per_step 20 -method sac -target_entropy -1.0 -target_drop_rate 0.005 -layer_norm 1
 droq-8400s, sac=8863s, redq= 2x time
-python main.py -info sac -env Hopper-v2 -seed 0 -eval_every 1000 -frames 100000 -eval_runs 10  -gpu_id 0 -updates_per_step 20 -method sac -target_entropy -1.0 
-python main.py -info drq -env FishStationary-v0 -seed 0 -eval_every 1000 -frames 100000 -eval_runs 10 -gpu_id 0 -updates_per_step 20 -method sac -target_entropy 0 -target_drop_rate 0.005 -layer_norm 1
+python main.py -info sac -env Hopper-v2 -seed 0 -eval_every 1000 -frames 100000 -eval_runs 10  -gpu_id 0 -critic_updates_per_step 20 -method sac -target_entropy -1.0 
+python main.py -info drq -env FishStationary-v0 -seed 0 -eval_every 1000 -frames 100000 -eval_runs 10 -gpu_id 0 -critic_updates_per_step 20 -method sac -target_entropy 0 -target_drop_rate 0.005 -layer_norm 1
 
 <class 'rlutils.envs.fishEnvs.FishMoving'>
 <class 'rlutils.envs.fishEnvs.FishMovingCNN'>
@@ -65,7 +65,7 @@ def run():
     parser.add_argument("-dist", "--distributional", type=int, default=0, choices=[0, 1],
                         help="Using a distributional IQN Critic if set to 1, default=0") # TODO remove
     # learning per steps
-    parser.add_argument("-updates_per_step", type=int, default=1,
+    parser.add_argument("-critic_updates_per_step", type=int, default=1,
                         help="Number of training updates per one environment step, default = 1")
     # th 20210724
     parser.add_argument("-target_entropy", type=float, default=None, help="target entropy , default=Num action")
@@ -102,9 +102,9 @@ def run():
         'per': args.per, #False,  # prioritized experience replay
         'alpha': 0.6,  # It's ignored when per=False.
         'beta': 0.4,  # It's ignored when per=False.
-        'beta_annealing': (1.0 - 0.4) / (1.0 * args.frames * args.updates_per_step), # 0.0001,  # It's ignored when per=False.
+        'beta_annealing': (1.0 - 0.4) / (1.0 * args.frames * args.critic_updates_per_step), # 0.0001,  # It's ignored when per=False.
         'grad_clip': None,
-        'updates_per_step': args.updates_per_step * args.critic_update_delay, # args.updates_per_step, #1,
+        'critic_updates_per_step': args.critic_updates_per_step * args.critic_update_delay, # args.critic_updates_per_step, #1,
         'start_steps': 5000, #10000,
         'log_interval': 10,
         'target_update_interval': 1,
