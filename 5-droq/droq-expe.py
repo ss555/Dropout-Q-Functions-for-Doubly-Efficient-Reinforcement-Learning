@@ -1,17 +1,11 @@
 import os
 import argparse
 import datetime
-import gym
 from agent import SacAgent
 from rlutils.utils import *
 import socket
 from rlutils.linear_expe import make_red_yellow_env_speed
-# TODO use shared util.utilTH in SAC-extention
-from util.utilsTH import SparseRewardEnv
-import customenvs
-customenvs.register_mbpo_environments()
 
-from agent4profile import SacAgent4Profile
 from rlutils.envs import * #register_envs
 # register_envs()
 
@@ -35,7 +29,7 @@ def run():
     # MAXIMIZE SPEED
     env, params = make_red_yellow_env_speed(vid, s, monitor_dir, len_episode=128, tau=tau)
     configs = {'num_steps': 100000,
-    'batch_size': 256,
+    'batch_size': 1024,
     'lr': 0.0003,
     'hidden_units': [256, 256],
     'memory_size': 1000000.0,
@@ -49,7 +43,8 @@ def run():
     'beta': 0.4,
     'beta_annealing': 3e-07,
     'grad_clip': None,
-    'critic_updates_per_step': 20,
+    'critic_updates_per_step': 20,#20,
+    'gradients_step': 128,#20,
     'start_steps': 5000,
     'log_interval': 10,
     'target_update_interval': 1,
@@ -65,7 +60,7 @@ def run():
     'critic_update_delay': 1}
 
 
-    label = "fish_" + str(datetime.datetime.now()).split(" ")[0]
+    label = "fish_exp-speed-" + str(datetime.now()).split(" ")[0]
     # label = args.env + "_" + str(datetime.datetime.now())
     log_dir = os.path.join('runs', label)
 

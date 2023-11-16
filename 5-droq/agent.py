@@ -296,11 +296,14 @@ class SacAgent:
                 update_params(self.alpha_optim, None, entropy_loss)
                 self.alpha = self.log_alpha.exp()
 
-        self.writer.add_scalar('mean-q', mean_q1, self.steps)
-        self.writer.add_scalar('mean-q2', mean_q2, self.steps)
+        self.writer.add_scalar('mean-q/1', mean_q1, self.steps)
+        self.writer.add_scalar('mean-q/2', mean_q2, self.steps)
 
         self.writer.add_scalar('loss/critic_1', q1_loss, self.steps)
         self.writer.add_scalar('loss/critic_2', q2_loss, self.steps)
+
+        self.writer.add_scalar('policy_loss/train', policy_loss.item(), self.steps)
+        self.writer.add_scalar('entropy/train', entropies.mean().item(), self.steps)
 
 
     def calc_critic_4redq_loss(self, batch, weights):
@@ -356,8 +359,6 @@ class SacAgent:
         # Policy objective is maximization of (Q + alpha * entropy) with
         # priority weights.
         policy_loss = torch.mean((- q - self.alpha * entropy) * weights)
-        self.writer.add_scalar('policy_loss/train', policy_loss.item(), self.steps)
-        self.writer.add_scalar('entropy/train', entropy.mean().item(), self.steps)
         return policy_loss, entropy
 
     def calc_entropy_loss(self, entropy, weights):
