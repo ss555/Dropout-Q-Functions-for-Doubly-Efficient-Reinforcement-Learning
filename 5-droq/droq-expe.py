@@ -59,6 +59,7 @@ def run():
     'target_entropy': -1.0,
     'method': 'sac',
     'target_drop_rate': 0.005,
+    'log_dir': monitor_dir,
     'critic_update_delay': 1}
 
     label = "fish_exp-speed-" + str(datetime.now()).split(" ")[0]

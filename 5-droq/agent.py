@@ -289,8 +289,8 @@ class SacAgent:
                 update_params(self.alpha_optim, None, entropy_loss)
                 self.alpha = self.log_alpha.exp()
 
-        self.writer.add_scalar('mean-q/1', mean_q1, self.steps)
-        self.writer.add_scalar('mean-q/2', mean_q2, self.steps)
+        self.writer.add_scalar('mean-q/q1', mean_q1, self.steps)
+        self.writer.add_scalar('mean-q/q2', mean_q2, self.steps)
 
         self.writer.add_scalar('loss/critic_1', q1_loss, self.steps)
         self.writer.add_scalar('loss/critic_2', q2_loss, self.steps)
