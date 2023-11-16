@@ -49,7 +49,7 @@ def run():
     'beta': 0.4,
     'beta_annealing': 3e-07,
     'grad_clip': None,
-    'updates_per_step': 20,
+    'critic_updates_per_step': 20,
     'start_steps': 5000,
     'log_interval': 10,
     'target_update_interval': 1,
