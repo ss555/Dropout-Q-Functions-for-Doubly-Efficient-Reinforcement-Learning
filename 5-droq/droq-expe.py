@@ -16,7 +16,8 @@ def run():
     set_high_priority()
     monitor_dir, _ = make_dir_exp(os.path.abspath(os.path.join(os.path.dirname(__file__), './logs')))  # '../docs/weightsParams/ppo.yml')
     print(monitor_dir)
-    
+
+
     HOST = 'raspberrypi.local'  # '192.168.0.10'  # IP address of Raspberry Pi
     PORT = 8080  # same arbitrary port as on server
     vid = cv2.VideoCapture(0)
@@ -27,9 +28,9 @@ def run():
     # connect to the server
     s.connect((HOST, PORT))
     # MAXIMIZE SPEED
-    env, params = make_red_yellow_env_speed(vid, s, monitor_dir, len_episode=128, tau=tau)
+    env, params = make_red_yellow_env_speed(vid, s, monitor_dir, len_episode=128, tau=tau, discrete_actions=False, phi=40, sb3=False)
     configs = {'num_steps': 100000,
-    'batch_size': 1024,
+    'batch_size': 512,
     'lr': 0.0003,
     'hidden_units': [256, 256],
     'memory_size': 1000000.0,
