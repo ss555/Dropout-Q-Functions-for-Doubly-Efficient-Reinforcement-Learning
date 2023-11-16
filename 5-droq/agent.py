@@ -12,7 +12,7 @@ from utils import grad_false, hard_update, soft_update, to_batch, update_params,
 from collections import deque
 import itertools
 import math
-
+import multiprocessing as mp
 class SacAgent:
 
     def __init__(self, env, log_dir, num_steps=3000000, batch_size=256,
@@ -213,7 +213,6 @@ class SacAgent:
                 with torch.no_grad():
                     curr_q1, curr_q2 = self.calc_current_q(*batch)
                 target_q = self.calc_target_q(*batch)
-                # fixed by tH20210715
                 error = (0.5 * torch.abs(curr_q1 - target_q) + 0.5 * torch.abs(curr_q2 - target_q)).item()
                 # We need to give true done signal with addition to masked done
                 # signal to calculate multi-step rewards.
@@ -224,14 +223,16 @@ class SacAgent:
                 self.memory.append(state, action, reward, next_state, masked_done, episode_done=done)
             state = next_state
             # time.sleep(0.02)
-            if self.is_update():
-                self.learn()
+
+            # if self.is_update():
+            #     self.learn()
             #
-        # if self.is_update():
-        #     self.learn()
+        if self.is_update():
+            self.learn()
 
         self.episodes_num += 1
         if self.episodes_num % self.eval_episodes_interval == 0:
+        # if self.steps % self.eval_interval == 0:
             self.evaluate()
             self.save_models()
 
@@ -445,8 +446,7 @@ class SacAgent:
     def save_models(self):
         self.policy.save(os.path.join(self.model_dir, 'policy.pth'))
         self.critic.save(os.path.join(self.model_dir, 'critic.pth'))
-        self.critic_target.save(
-            os.path.join(self.model_dir, 'critic_target.pth'))
+        self.critic_target.save(os.path.join(self.model_dir, 'critic_target.pth'))
 
     def __del__(self):
         self.writer.close()
