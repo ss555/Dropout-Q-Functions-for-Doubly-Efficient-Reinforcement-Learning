@@ -5,8 +5,9 @@ from agent import SacAgent
 from rlutils.utils import *
 import socket
 from rlutils.linear_expe import make_red_yellow_env_speed
-
+import multiprocessing as mp
 from rlutils.envs import * #register_envs
+from rlutils.utils import *
 # register_envs()
 
 tau = 0.05
@@ -17,7 +18,10 @@ def run():
     monitor_dir, _ = make_dir_exp(os.path.abspath(os.path.join(os.path.dirname(__file__), './logs')))  # '../docs/weightsParams/ppo.yml')
     print(monitor_dir)
 
-
+    process = mp.Process(target=run_rpi)
+    process.start()
+    time.sleep(4)
+    
     HOST = 'raspberrypi.local'  # '192.168.0.10'  # IP address of Raspberry Pi
     PORT = 8080  # same arbitrary port as on server
     vid = cv2.VideoCapture(0)
@@ -27,8 +31,12 @@ def run():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # connect to the server
     s.connect((HOST, PORT))
-    # MAXIMIZE SPEED
-    env, params = make_red_yellow_env_speed(vid, s, monitor_dir, len_episode=90, tau=tau, discrete_actions=False, phi=30, sb3=False)
+    # MAXIMIZE SPEED ENV
+    # env, params = make_red_yellow_env_speed(vid, s, monitor_dir, len_episode=90, tau=tau, discrete_actions=False, phi=30, sb3=False)
+
+    # dummy ENV
+    env = DummyconnectionEnv(s)
+
     configs = {'num_steps': 100000,
     'batch_size': 256,
     'lr': 0.0003,
