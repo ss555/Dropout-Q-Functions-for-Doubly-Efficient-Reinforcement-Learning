@@ -23,8 +23,11 @@ import torch
 import gym
 from matplotlib import pyplot as plt
 import numpy as np
+from copy import deepcopy
 
-path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/KUCodebase/code/runs/droq/FishMovingTargetSpeed-v0_2023-11-08/model/policy.pth'
+EP_STEPS = 2000
+path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/runs/droq/FishMovingTargetSpeed-v0_2023-11-08/model/policy.pth'
+
 configs = {'num_steps': 100000,
     'batch_size': 256,
     'lr': 0.0003,
@@ -54,10 +57,10 @@ configs = {'num_steps': 100000,
     'method': 'sac',
     'target_drop_rate': 0.005,
     'critic_update_delay': 1}
+
 hidden_units=[256, 256]
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-# def run(path,env):
-env = gym.make('FishMovingTargetSpeed-v0')
+env = FishMovingTargetSpeed(EP_STEPS=3000) #gym.make('FishMovingTargetSpeed-v0')
 
 policy = GaussianPolicy(
             env.observation_space.shape[0],
@@ -66,40 +69,52 @@ policy = GaussianPolicy(
 
 policy.load_state_dict(torch.load(path))
 done = False
-r_arr, obs_arr, acts = [], [], []
+r_arr, obs_arr, acts, consigne = [], [], [], []
 i = 0
 obs=env.reset()
+targets = [2,1.5,1,0.5,0]
+targets = [1,1.5,2,0.5,0]
+env.target = targets[0]
+c=0
 while not done:
-    act= policy.sample(torch.FloatTensor(obs).to(device))[-1].detach().item()
+    obs_m = deepcopy(obs)
+    obs_m[1] = obs_m[1]+1-env.target
+    act = policy.sample(torch.FloatTensor(obs_m).to(device))[-1].detach().item()
     obs, rew, done, _ = env.step(act)
     r_arr.append(rew)
     obs_arr.append(obs)
     acts.append(act)
+    consigne.append(env.target)
     i += 1
+    if i%300==0:
+        c += 1
+        env.target = targets[c%len(targets)]
+
 
 #take the first 400 steps
 obs_arr = np.array(obs_arr)
-obs_arr = obs_arr[:400]
-r_arr = r_arr[:400]
-acts = acts[:400]
+crop_end=800
+obs_arr = obs_arr[:crop_end]
+r_arr = r_arr[:crop_end]
+acts = acts[:crop_end]
 
 
 fig, ax = plt.subplots(3,1,figsize=(9,6),sharex=True)
-# Define labels for each subplot
 axis_labels = ['a', 'b', 'c']
 titles = [r'$\dot{x} [a.u]$', r'$\alpha$ [a.u]', 'Control value [a.u]']
+
 crop_val=400
 for t, a, label, ly  in zip([obs_arr[:,1], obs_arr[:,2], acts], ax[:], axis_labels,titles):
     plt.locator_params(nbins=6)
-    t=t[:crop_val]
     a.plot(t)
     if ly==titles[0]:
-        a.axhline(y=1, color='r', linestyle='--')
+        a.plot(consigne[:crop_end], color='r', linestyle='--')
     elif ly==titles[1]:
         a.axhline(y=0, color='r', linestyle='--')
     # Add the label to the plot
     a.text(0.015, 0.95, f'{label})', transform=a.transAxes, fontsize=14, fontweight='bold', va='top')
     a.set_ylabel(ly)
+
 plt.xlabel('time steps')
 plt.savefig(f'./FishMovingTargetSpeedDroq.pdf')
 plt.show()
@@ -111,5 +126,3 @@ ax[1].plot(obs_arr[:,2])
 ax[2].plot(obs_arr[:,1])
 plt.xlabel('time step')
 plt.show()
-
-

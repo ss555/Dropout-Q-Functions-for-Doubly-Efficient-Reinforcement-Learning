@@ -6,18 +6,18 @@ from agent import SacAgent
 from rlutils.envs import *
 from rlutils.env_wrappers import LoggerWrap
 from rlutils.utils import *
-from rlutils.envs import * #register_envs
-# register_envs()
+from rlutils.envs import *
 
 def run():
     set_high_priority('ss')
     env_name='FishMovingTargetSpeed-v0'
+    # env_name='FishMovingVisualServoContinousSparse-v0'
     env = gym.make(env_name)
     os.makedirs('./logs', exist_ok=True)
     # monitor_dir = os.path.join(os.path.dirname(__file__),'./logs')
     monitor_dir, _ = make_dir_exp(os.path.abspath(os.path.join(os.path.dirname(__file__), './logs')))
     print(monitor_dir)
-    # env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
+    env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
     env = TimeLimit(env, max_episode_steps=768)
 
     configs = {'num_steps': 100000,
@@ -35,8 +35,8 @@ def run():
                'beta': 0.4,
                'beta_annealing': 3e-07,
                'grad_clip': None,
-               'critic_updates_per_step': 5000,#20,
-               # 'start_steps': 5000,
+               'critic_updates_per_step': 20,#20,
+               'gradients_step': 768,#20,
                'start_steps': 0,
                'log_interval': 10,
                'target_update_interval': 1,

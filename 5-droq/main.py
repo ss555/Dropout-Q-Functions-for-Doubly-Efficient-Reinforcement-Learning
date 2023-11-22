@@ -6,8 +6,7 @@ from agent import SacAgent
 from rlutils.envs import *
 from rlutils.env_wrappers import LoggerWrap
 from rlutils.utils import *
-from rlutils.envs import * #register_envs
-# register_envs()
+from rlutils.envs import *
 
 def run():
     set_high_priority('ss')
@@ -38,7 +37,6 @@ def run():
                'grad_clip': None,
                'critic_updates_per_step': 20,#20,
                'gradients_step': 768,#20,
-               # 'start_steps': 5000,
                'start_steps': 0,
                'log_interval': 10,
                'target_update_interval': 1,

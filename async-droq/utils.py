@@ -18,7 +18,6 @@ def update_params(optim, network, loss, grad_clip=None, retain_graph=False):
         for p in network.modules():
             torch.nn.utils.clip_grad_norm_(p.parameters(), grad_clip)
     optim.step()
-    # return loss.item()
 
 
 def soft_update(target, source, tau):
