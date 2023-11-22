@@ -26,7 +26,8 @@ import numpy as np
 from copy import deepcopy
 
 EP_STEPS = 2000
-path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/runs/droq/FishMovingTargetSpeed-v0_2023-11-08/model/policy.pth'
+# path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/runs/droq/FishMovingTargetSpeed-v0_2023-11-08/model/policy.pth'
+path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/5-droq/runs/FishMovingTargetSpeed-v0_2023-11-22/model/policy.pth'
 
 configs = {'num_steps': 100000,
     'batch_size': 256,
@@ -60,6 +61,7 @@ configs = {'num_steps': 100000,
 
 hidden_units=[256, 256]
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(f'using device: {device}')
 env = FishMovingTargetSpeed(EP_STEPS=3000) #gym.make('FishMovingTargetSpeed-v0')
 
 policy = GaussianPolicy(
