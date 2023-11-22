@@ -4,27 +4,30 @@ import datetime
 from agent import SacAgent
 from rlutils.utils import *
 import socket
-from rlutils.linear_expe import make_red_yellow_env_speed
+from rlutils.linear_expe import make_red_yellow_env_speed, DummyconnectionEnv
 import multiprocessing as mp
 from rlutils.envs import * #register_envs
 from rlutils.utils import *
-# register_envs()
+from rlutils.env_wrappers import LoggerWrap
 
 tau = 0.05
+tau = 0.08
 
 def run():
 
     set_high_priority()
-    monitor_dir, _ = make_dir_exp(os.path.abspath(os.path.join(os.path.dirname(__file__), './logs')))  # '../docs/weightsParams/ppo.yml')
+    monitor_dir, _ = make_dir_exp(os.path.abspath(os.path.join(os.path.dirname(__file__), './logs')))  
     print(monitor_dir)
 
     process = mp.Process(target=run_rpi)
     process.start()
-    time.sleep(4)
+    time.sleep(5)
     
     HOST = 'raspberrypi.local'  # '192.168.0.10'  # IP address of Raspberry Pi
-    PORT = 8080  # same arbitrary port as on server
+    PORT = 8080  
     vid = cv2.VideoCapture(0)
+    vid.set(cv2.CAP_PROP_FPS, 30)
+    print(vid.get(cv2.CAP_PROP_FPS))
     _, obs = vid.read()
     assert obs.any() != None
     # create a socket object
@@ -32,10 +35,12 @@ def run():
     # connect to the server
     s.connect((HOST, PORT))
     # MAXIMIZE SPEED ENV
-    # env, params = make_red_yellow_env_speed(vid, s, monitor_dir, len_episode=90, tau=tau, discrete_actions=False, phi=30, sb3=False)
+    env, params = make_red_yellow_env_speed(vid, s, monitor_dir, len_episode=90, tau=tau, discrete_actions=False, phi=30, sb3=False)
 
     # dummy ENV
-    env = DummyconnectionEnv(s)
+    # env = DummyconnectionEnv(vid, s, monitor_dir)
+    # env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
+    # env = TimeLimit(env, max_episode_steps=90)
 
     configs = {'num_steps': 100000,
     'batch_size': 256,
@@ -69,13 +74,16 @@ def run():
     'target_drop_rate': 0.005,
     'log_dir': monitor_dir,
     'critic_update_delay': 1}
-
-    label = "fish_exp-speed-" + str(datetime.now()).split(" ")[0]
-    # label = args.env + "_" + str(datetime.datetime.now())
-    log_dir = os.path.join('runs', label)
-
-    agent = SacAgent(env=env, log_dir=log_dir, **configs)
-    agent.run()
+    try:
+        agent = SacAgent(env=env, **configs)
+        agent.run()
+    except:
+        traceback.print_exc()
+    finally:
+        s.close()
+        vid.release()
+        cv2.destroyAllWindows()
+        
 
 
 if __name__ == '__main__':

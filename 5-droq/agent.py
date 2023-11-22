@@ -130,7 +130,6 @@ class SacAgent:
         self.critic_updates_per_step = critic_updates_per_step
         self.log_interval = log_interval
         self.target_update_interval = target_update_interval
-        self.eval_interval = eval_interval
         self.eval_runs = eval_runs
         self.huber = huber
         self.multi_step = multi_step
@@ -202,7 +201,7 @@ class SacAgent:
 
             # ignore done if the agent reach time horizons
             # (set done=True only when the agent fails)
-            if episode_steps >= self.env._max_episode_steps or info["TimeLimit.truncated"]:
+            if episode_steps >= self.env._max_episode_steps or ("TimeLimit.truncated" in info.keys() and info["TimeLimit.truncated"]):
                 masked_done = False
             else:
                 masked_done = done
