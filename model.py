@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from torch.distributions import Normal
 from rltorch.network import create_linear_network
-#
 import random
 
 class BaseNetwork(nn.Module):
@@ -129,6 +128,5 @@ class GaussianPolicy(BaseNetwork):
             entropies = -log_probs
         else:
             entropies = -log_probs.sum(dim=1, keepdim=True)
-
 
         return actions, entropies, torch.tanh(means)
