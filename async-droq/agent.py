@@ -1,6 +1,5 @@
 import os
 import time
-
 import numpy as np
 import torch
 from torch.optim import Adam
@@ -8,11 +7,12 @@ from torch.utils.tensorboard import SummaryWriter
 from rltorch.memory import MultiStepMemory, PrioritizedMemory
 from model import TwinnedQNetwork, GaussianPolicy, RandomizedEnsembleNetwork
 from utils import grad_false, hard_update, soft_update, to_batch, update_params, RunningMeanStats
-
+import threading
 from collections import deque
 import itertools
 import math
 import multiprocessing as mp
+
 class SacAgent:
 
     def __init__(self, env, log_dir, num_steps=3000000, batch_size=256,
@@ -53,12 +53,8 @@ class SacAgent:
                     "hidden_units": hidden_units,
                     "layer_norm": layer_norm,
                     "drop_rate": self.target_drop_rate}
-        if self.method == "redq":
-            self.critic = RandomizedEnsembleNetwork(**kwargs_q).to(self.device)
-            self.critic_target = RandomizedEnsembleNetwork(**kwargs_q).to(self.device)
-        else:
-            self.critic = TwinnedQNetwork(**kwargs_q).to(self.device)
-            self.critic_target = TwinnedQNetwork(**kwargs_q).to(self.device)
+        self.critic = TwinnedQNetwork(**kwargs_q).to(self.device)
+        self.critic_target = TwinnedQNetwork(**kwargs_q).to(self.device)
         if self.target_drop_rate <= 0.0:
             self.critic_target = self.critic_target.eval()
         # copy parameters of the learning network to the target network
@@ -68,13 +64,8 @@ class SacAgent:
 
         # optimizer
         self.policy_optim = Adam(self.policy.parameters(), lr=lr)
-        if self.method == "redq":
-            for i in range(self.critic.N):
-                setattr(self, "q"+str(i)+"_optim",
-                        Adam(getattr(self.critic, "Q"+str(i)).parameters(), lr=lr))
-        else:
-            self.q1_optim = Adam(self.critic.Q1.parameters(), lr=lr)
-            self.q2_optim = Adam(self.critic.Q2.parameters(), lr=lr)
+        self.q1_optim = Adam(self.critic.Q1.parameters(), lr=lr)
+        self.q2_optim = Adam(self.critic.Q2.parameters(), lr=lr)
 
         if entropy_tuning:
             if not (target_entropy is None):
@@ -173,28 +164,23 @@ class SacAgent:
         with torch.no_grad():
             next_actions, next_entropies, _ = self.policy.sample(next_states)
             next_q1, next_q2 = self.critic_target(next_states, next_actions)
-            if self.method == "sac" or self.method == "redq":
-                next_q = torch.min(next_q1, next_q2) + self.alpha * next_entropies
-            elif self.method == "duvn":
-                next_q = next_q1 + self.alpha * next_entropies # discard q2
-            elif self.method == "monosac":
-                next_q2, _ = self.critic_target(next_states, next_actions)
-                next_q = torch.min(next_q1, next_q2) + self.alpha * next_entropies
-            else:
-                raise NotImplementedError()
+            next_q = torch.min(next_q1, next_q2) + self.alpha * next_entropies
         # rescale rewards by num step TH20210705
         target_q = (rewards / (self.multi_step * 1.0)) + (1.0 - dones) * self.gamma_n * next_q
         return target_q
 
-    def train_episode(self):
+    def interact(self):
         self.episodes += 1
         episode_reward = 0.
         episode_steps = 0
         done = False
-        state = self.env.reset()
+        self.state = self.env.reset()
 
         while not done:
-            action = self.act(state)
+            # t1 = threading.Thread(target=self.interact)
+            # t1.start()
+            # acq_loop = mp.Process(target=self.interact)
+            action = self.act(self.state)
             next_state, reward, done, info = self.env.step(action)
             self.steps += 1
             episode_steps += 1
@@ -222,10 +208,7 @@ class SacAgent:
                 # We need to give true done signal with addition to masked done
                 # signal to calculate multi-step rewards.
                 self.memory.append(state, action, reward, next_state, masked_done, episode_done=done)
-            state = next_state
-
-        if self.is_update():
-            self.learn()
+            self.state = next_state
 
         self.episodes_num += 1
         if self.episodes_num % self.eval_episodes_interval == 0:
@@ -240,6 +223,13 @@ class SacAgent:
         print(f'episode: {self.episodes}  '
               f'episode steps: {episode_steps}  '
               f'reward: {episode_reward}')
+
+
+
+    def train_episode(self):
+
+        if self.is_update():
+            self.learn()
 
     def learn(self):
         self.learning_steps += 1
@@ -295,23 +285,6 @@ class SacAgent:
         self.writer.add_scalar('entropy/train', entropies.mean().item(), self.steps)
 
 
-    def calc_critic_4redq_loss(self, batch, weights):
-        states, actions, rewards, next_states, dones = batch
-        curr_qs = self.critic.allQs(states, actions)
-
-        target_q = self.calc_target_q(*batch)
-
-        # TD errors for updating priority weights
-        errors = torch.abs(curr_qs[0].detach() - target_q) # TODO better to use average of all errors?
-        # We log means of Q to monitor training.
-        mean_q1 = curr_qs[0].detach().mean().item()
-        mean_q2 = curr_qs[1].detach().mean().item()
-
-        # Critic loss is mean squared TD errors with priority weights.
-        losses = []
-        for curr_q in curr_qs:
-            losses.append(torch.mean((curr_q - target_q).pow(2) * weights))
-        return losses, errors, mean_q1, mean_q2
 
     def calc_critic_loss(self, batch, weights):
         assert self.method == "sac" or self.method == "duvn" or self.method == "monosac", "This method is only for sac or duvn or monosac method"
@@ -335,16 +308,11 @@ class SacAgent:
         # We re-sample actions to calculate expectations of Q.
         sampled_action, entropy, _ = self.policy.sample(states)
         # expectations of Q with clipped double Q technique
-        if self.method == "redq":
-            q = self.critic.averageQ(states, sampled_action)
+        q1, q2 = self.critic(states, sampled_action)
+        if self.target_drop_rate > 0.0:
+            q = 0.5 * (q1 + q2)
         else:
-            q1, q2 = self.critic(states, sampled_action)
-            if (self.method == "duvn") or (self.method == "monosac"):
-                q2 = q1 # discard q2
-            if self.target_drop_rate > 0.0:
-                q = 0.5 * (q1 + q2)
-            else:
-                q = torch.min(q1, q2)
+            q = torch.min(q1, q2)
         # Policy objective is maximization of (Q + alpha * entropy) with
         # priority weights.
         policy_loss = torch.mean((- q - self.alpha * entropy) * weights)
@@ -398,11 +366,8 @@ class SacAgent:
             with torch.no_grad():
                 state = torch.FloatTensor(states).to(self.device)
                 action = torch.FloatTensor(actions).to(self.device)
-                if self.method == "redq":
-                    q = self.critic.averageQ(state, action)
-                else:
-                    q1, q2 = self.critic(state, action)
-                    q = 0.5 * (q1 + q2)
+                q1, q2 = self.critic(state, action)
+                q = 0.5 * (q1 + q2)
                 qs = q.to('cpu').numpy()
             for j in range(len(sar_buf[i])):
                 score = (qs[j][0] - mc_discounted_return[i][j]) / norm_coef
