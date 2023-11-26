@@ -20,14 +20,11 @@ import gym
 from matplotlib import pyplot as plt
 import numpy as np
 from copy import deepcopy
-from rlutils.utils import config_paper
 
-c= config_paper()
-
-EP_STEPS = 1000
+EP_STEPS = 2000
 # path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/runs/droq/FishMovingTargetSpeed-v0_2023-11-08/model/policy.pth'
 path='./runs/FishMovingTargetSpeed-v0_2023-11-22/model/policy.pth'
-path='./runs/FishMovingTargetSpeedController-v0_2023-11-25/model/policy.pth'
+path='./runs/FishMovingTargetSpeed-v0_2023-11-23/model/policy.pth'
 
 configs = {'num_steps': 100000,
     'batch_size': 256,
@@ -62,7 +59,7 @@ configs = {'num_steps': 100000,
 hidden_units=[256, 256]
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f'using device: {device}')
-env = FishMovingTargetSpeedController(EP_STEPS=EP_STEPS) #gym.make('FishMovingTargetSpeed-v0')
+env = FishMovingTargetSpeed(EP_STEPS=3000) #gym.make('FishMovingTargetSpeed-v0')
 
 policy = GaussianPolicy(
             env.observation_space.shape[0],
@@ -74,14 +71,14 @@ done = False
 r_arr, obs_arr, acts, consigne = [], [], [], []
 i = 0
 obs=env.reset()
-obs = np.zeros_like(obs)
 env.state = obs
-targets = [2,1.5,1,0.5]
-# targets = [1,1.5,2,0.5,0]
+targets = [2,1.5,1,0.5,0]
+targets = [1,1.5,2,0.5,0]
 env.target = targets[0]
 c=0
 while not done:
     obs_m = deepcopy(obs)
+    obs_m[0] = obs_m[0]+1-env.target
     act = policy.sample(torch.FloatTensor(obs_m).to(device))[-1].detach().item()
     obs, rew, done, _ = env.step(act)
     r_arr.append(rew)
@@ -96,7 +93,7 @@ while not done:
 
 #take the first 400 steps
 obs_arr = np.array(obs_arr)
-crop_end=EP_STEPS
+crop_end=800
 obs_arr = obs_arr[:crop_end]
 r_arr = r_arr[:crop_end]
 acts = acts[:crop_end]
@@ -105,6 +102,7 @@ acts = acts[:crop_end]
 fig, ax = plt.subplots(3,1,figsize=(9,6),sharex=True)
 axis_labels = ['a', 'b', 'c']
 titles = [r'$\dot{x} [a.u]$', r'$\alpha$ [a.u]', 'Control value [a.u]']
+
 crop_val=400
 for t, a, label, ly  in zip([obs_arr[:,0], obs_arr[:,1], acts], ax[:], axis_labels,titles):
     plt.locator_params(nbins=6)
