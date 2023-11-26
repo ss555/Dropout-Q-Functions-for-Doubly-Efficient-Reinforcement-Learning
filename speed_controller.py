@@ -81,8 +81,7 @@ targets = [2,1.5,1,0.5]
 env.target = targets[0]
 c=0
 while not done:
-    obs_m = deepcopy(obs)
-    act = policy.sample(torch.FloatTensor(obs_m).to(device))[-1].detach().item()
+    act = policy.sample(torch.FloatTensor(obs).to(device))[-1].detach().item()
     obs, rew, done, _ = env.step(act)
     r_arr.append(rew)
     obs_arr.append(obs)
