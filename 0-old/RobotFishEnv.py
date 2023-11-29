@@ -739,7 +739,7 @@ class camera_linear(gym.Env):
         print(f'reward mode{self.reward_mode}')  # and ini rew :{self.calculate_rew_speed_flag(obs)}')
         self.last_timer = timer()
         print('connected')
-        self.reset_comms = [1700, 1300]
+        self.reset_comms = [1500, 1500]
         self.imu = True
         if self.img_crop:
             print(f'using centered images')
