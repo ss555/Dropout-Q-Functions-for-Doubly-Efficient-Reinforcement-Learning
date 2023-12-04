@@ -59,11 +59,7 @@ while not done:
     obs_arr.append(obs)
     acts.append(act)
     consigne.append(env.target)
-
     i += 1
-    if i%300==0:
-        c += 1
-        env.target = targets[c%len(targets)]
 
 
 #take the first 400 steps
@@ -90,7 +86,7 @@ for t, a, label, ly  in zip([obs_arr[:,0], obs_arr[:,1], acts], ax[:], axis_labe
     a.set_ylabel(ly)
 
 plt.xlabel('time steps')
-plt.savefig(f'./FishMovingTargetSpeedDroq.pdf')
+plt.savefig(f'./FishMovingTargetSpeedFixedDroq.pdf')
 plt.show()
 
 # fig, ax = plt.subplots(3,1,sharex=True)
