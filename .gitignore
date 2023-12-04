@@ -2,5 +2,7 @@
 /logs
 /5-droq
 /runs
+/runsA
 
 ./t.py
+**/*.py
