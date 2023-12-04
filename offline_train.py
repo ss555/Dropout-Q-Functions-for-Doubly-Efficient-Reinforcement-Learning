@@ -11,10 +11,6 @@ from rlutils.envs import *
 def run():
     # env_name='FishMovingTargetSpeed-v0'
     env_name='FishMovingTargetSpeedController-v0'
-    # env_name='FishMoving-v0'
-    # env_name='FishMovingVisualServoContinousSparse-v0'
-    # env = gym.make(env_name)
-    
     env = FishMovingTargetSpeedController(EP_STEPS=768,random_target=True)
     os.makedirs('./logs', exist_ok=True)
     monitor_dir, _ = make_dir_exp(os.path.abspath(os.path.join(os.path.dirname(__file__), './logs')))
@@ -59,12 +55,9 @@ def run():
         env._max_episode_steps = env.wrapped_env._max_episode_steps
     except:
         env._max_episode_steps = 768
+
     agent = SacAgent(env=env, log_dir=log_dir, **configs)
-    try:
-        agent.run()
-    except:
-        traceback.print_exc()
-        agent.save_buffer()
+
 
 
 if __name__ == '__main__':

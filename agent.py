@@ -7,11 +7,12 @@ from torch.utils.tensorboard import SummaryWriter
 from rltorch.memory import MultiStepMemory, PrioritizedMemory
 from model import TwinnedQNetwork, GaussianPolicy, RandomizedEnsembleNetwork
 from utils import grad_false, hard_update, soft_update, to_batch, update_params, RunningMeanStats
-
+import pickle as pkl
 from collections import deque
 import itertools
 import math
 import multiprocessing as mp
+
 class SacAgent:
     def __init__(self, env, log_dir, num_steps=3000000, batch_size=256,
                  lr=0.0003, hidden_units=[256, 256], memory_size=1e6,
@@ -100,6 +101,7 @@ class SacAgent:
         self.log_dir = log_dir
         self.model_dir = os.path.join(log_dir, 'model')
         self.summary_dir = os.path.join(log_dir, 'summary')
+
         if not os.path.exists(self.model_dir):
             os.makedirs(self.model_dir)
         if not os.path.exists(self.summary_dir):
@@ -127,7 +129,13 @@ class SacAgent:
         self.multi_step = multi_step
         if resume_training_path is not None:
             self.load_models(resume_training_path)
-    
+
+    def save_buffer(self):
+        with open(os.path.join(self.model_dir, 'buffer.pkl'), "w") as file_handler:
+        # Use protocol>=4 to support saving replay buffers >= 4Gb
+        # See https://docs.python.org/3/library/pkl.html
+            pkl.dump(self.memory, file_handler, protocol=pkl.HIGHEST_PROTOCOL)
+
     def load_models(self, resume_training_path):
         self.policy.load_state_dict(torch.load(os.path.join(resume_training_path, 'policy.pth')))
         self.critic.load_state_dict(torch.load(os.path.join(resume_training_path, 'critic.pth')))
@@ -233,8 +241,6 @@ class SacAgent:
         if self.episodes_num % self.eval_episodes_interval == 0:
             self.evaluate()
 
-
-
         # We log running mean of training rewards.
         self.train_rewards.append(episode_reward)
         self.writer.add_scalar('reward/train', self.train_rewards.get(), self.steps)
@@ -300,7 +306,6 @@ class SacAgent:
     def calc_critic_4redq_loss(self, batch, weights):
         states, actions, rewards, next_states, dones = batch
         curr_qs = self.critic.allQs(states, actions)
-
         target_q = self.calc_target_q(*batch)
 
         # TD errors for updating priority weights
@@ -440,6 +445,7 @@ class SacAgent:
         self.policy.save(os.path.join(self.model_dir, 'policy.pth'))
         self.critic.save(os.path.join(self.model_dir, 'critic.pth'))
         self.critic_target.save(os.path.join(self.model_dir, 'critic_target.pth'))
+        print(f'Saved models.{self.model_dir}')
 
     def __del__(self):
         self.writer.close()
