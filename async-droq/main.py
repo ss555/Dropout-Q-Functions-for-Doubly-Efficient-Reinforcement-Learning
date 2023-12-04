@@ -50,6 +50,7 @@ def run():
                'target_drop_rate': 0.005,
                'critic_update_delay': 1}
 
+    
     label = f"{env_name}_" + str(datetime.now()).split(" ")[0]
     log_dir = os.path.join('runs', label)
     try:

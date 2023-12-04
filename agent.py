@@ -1,6 +1,5 @@
 import os
 import time
-
 import numpy as np
 import torch
 from torch.optim import Adam
@@ -14,7 +13,6 @@ import itertools
 import math
 import multiprocessing as mp
 class SacAgent:
-
     def __init__(self, env, log_dir, num_steps=3000000, batch_size=256,
                  lr=0.0003, hidden_units=[256, 256], memory_size=1e6,
                  gamma=0.99, tau=0.005, entropy_tuning=True, ent_coef=0.2,
@@ -24,7 +22,7 @@ class SacAgent:
                  eval_interval=1000, cuda=0, seed=0,
                  # added by TH 20210707
                  eval_runs=1, huber=0, layer_norm=0,
-                 method=None, target_entropy=None, target_drop_rate=0.0, critic_update_delay=1, gradients_step=1, eval_episodes_interval=20):
+                 method=None, target_entropy=None, target_drop_rate=0.0, critic_update_delay=1, gradients_step=1, eval_episodes_interval=20,resume_training_path=None):
         self.env = env
         self.episodes = 0
         self.gradients_step= gradients_step
@@ -53,12 +51,8 @@ class SacAgent:
                     "hidden_units": hidden_units,
                     "layer_norm": layer_norm,
                     "drop_rate": self.target_drop_rate}
-        if self.method == "redq":
-            self.critic = RandomizedEnsembleNetwork(**kwargs_q).to(self.device)
-            self.critic_target = RandomizedEnsembleNetwork(**kwargs_q).to(self.device)
-        else:
-            self.critic = TwinnedQNetwork(**kwargs_q).to(self.device)
-            self.critic_target = TwinnedQNetwork(**kwargs_q).to(self.device)
+        self.critic = TwinnedQNetwork(**kwargs_q).to(self.device)
+        self.critic_target = TwinnedQNetwork(**kwargs_q).to(self.device)
         if self.target_drop_rate <= 0.0:
             self.critic_target = self.critic_target.eval()
         # copy parameters of the learning network to the target network
@@ -133,6 +127,13 @@ class SacAgent:
         self.eval_runs = eval_runs
         self.huber = huber
         self.multi_step = multi_step
+        if resume_training_path is not None:
+            self.load_models(resume_training_path)
+    
+    def load_models(self, resume_training_path):
+        self.policy.load_state_dict(torch.load(os.path.join(resume_training_path, 'policy.pth')))
+        self.critic.load_state_dict(torch.load(os.path.join(resume_training_path, 'critic.pth')))
+        self.critic_target.load_state_dict(torch.load(os.path.join(resume_training_path, 'critic_target.pth')))
 
     def run(self):
         while True:

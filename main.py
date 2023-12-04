@@ -21,7 +21,7 @@ def run():
     env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
     env = TimeLimit(env, max_episode_steps=768)
 
-    configs = {'num_steps': 100000,
+    configs = {'num_steps': 10000,
                'batch_size': 1024,
                'lr': 0.0003,
                'hidden_units': [256, 256],
