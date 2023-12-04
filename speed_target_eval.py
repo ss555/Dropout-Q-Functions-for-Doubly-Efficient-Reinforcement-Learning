@@ -89,6 +89,7 @@ plt.xlabel('time steps')
 plt.savefig(f'./FishMovingTargetSpeedFixedDroq.pdf')
 plt.show()
 
+
 # fig, ax = plt.subplots(3,1,sharex=True)
 # fig.suptitle(f'droq:{np.sum(r_arr)}')
 # ax[0].plot(acts)
