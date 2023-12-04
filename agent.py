@@ -1,6 +1,5 @@
 import os
 import time
-
 import numpy as np
 import torch
 from torch.optim import Adam
@@ -89,7 +88,6 @@ class SacAgent:
         else:
             # fixed alpha
             self.alpha = torch.tensor(ent_coef).to(self.device)
-
         if per:
             # replay memory with prioritied experience replay
             # See https://github.com/ku2482/rltorch/blob/master/rltorch/memory
@@ -114,7 +112,6 @@ class SacAgent:
 
         self.writer = SummaryWriter(log_dir=self.summary_dir)
         self.train_rewards = RunningMeanStats(log_interval)
-
         self.steps = 0
         self.learning_steps = 0
         self.episodes_num = 0
@@ -229,11 +226,11 @@ class SacAgent:
             #
         if self.is_update():
             self.learn()
-
+        self.save_models()
         self.episodes_num += 1
         if self.episodes_num % self.eval_episodes_interval == 0:
             self.evaluate()
-            self.save_models()
+
 
 
         # We log running mean of training rewards.
