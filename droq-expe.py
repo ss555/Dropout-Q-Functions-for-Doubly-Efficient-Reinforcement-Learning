@@ -13,10 +13,10 @@ tau = 0.05
 len_episode = 128
 
 def run():
-
-    process = mp.Process(target=run_rpi)
+    set_high_priority()
+    process = mp.Process(target=run_rpi_linear_learning)
     process.start()
-    time.sleep(7)
+    time.sleep(10)
     
     monitor_dir, _ = make_dir_exp('./logs')
     HOST = 'raspberrypi.local'  # '192.168.0.10'  # IP address of Raspberry Pi
@@ -31,7 +31,7 @@ def run():
     # connect to the server
     s.connect((HOST, PORT))
     # MAXIMIZE SPEED ENV
-    env, params = make_red_yellow_env_speed(vid, s, monitor_dir, len_episode=len_episode, tau=tau, discrete_actions=False, phi=30, sb3=False)
+    env, params = make_red_yellow_env_speed(vid, s, monitor_dir, len_episode=len_episode, tau=tau, discrete_actions=False, phi=40, sb3=False)
 
     #UNCOMMENT FOR DUMMY ENV
     # dummy ENV
@@ -39,8 +39,8 @@ def run():
     # env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
     # env = TimeLimit(env, max_episode_steps=len_episode)
 
-    configs = {'num_steps': 100000,
-    'batch_size': 256,
+    configs =    {'num_steps': 100000,
+    'batch_size': 512,#256,
     'lr': 0.0003,
     'hidden_units': [256, 256],
     'memory_size': 1000000.0,
@@ -56,8 +56,8 @@ def run():
     'grad_clip': None,
     'critic_updates_per_step': 20,#20,
     'eval_episodes_interval': 50,
-    'gradients_step': 128,#20,
-    'start_steps': 0,
+    'gradients_step': len_episode,#20,
+    'start_steps': 500,
     'log_interval': 10,
     'target_update_interval': 1,
     'eval_interval': 1000,

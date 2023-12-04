@@ -13,7 +13,6 @@ from rlutils.utils import *
 tau = 0.05
 
 def run():
-
     set_high_priority()
     monitor_dir, _ = make_dir_exp(os.path.abspath(os.path.join(os.path.dirname(__file__), './logs')))  # '../docs/weightsParams/ppo.yml')
     print(monitor_dir)
@@ -32,10 +31,10 @@ def run():
     # connect to the server
     s.connect((HOST, PORT))
     # MAXIMIZE SPEED ENV
-    # env, params = make_red_yellow_env_speed(vid, s, monitor_dir, len_episode=90, tau=tau, discrete_actions=False, phi=30, sb3=False)
+    env, params = make_red_yellow_env_speed(vid, s, monitor_dir, len_episode=90, tau=tau, discrete_actions=False, phi=30, sb3=False)
 
     # dummy ENV
-    env = DummyconnectionEnv(s)
+    # env = DummyconnectionEnv(s)
 
     configs = {'num_steps': 100000,
     'batch_size': 256,
