@@ -9,13 +9,12 @@ from rlutils.utils import *
 from rlutils.envs import *
 
 def run():
-    # env_name='FishMovingTargetSpeed-v0'
-    env_name='FishMovingTargetSpeedController-v0'
+    env_name='FishMovingTargetSpeed-v0'
+    # env_name='FishMovingTargetSpeedController-v0'
     # env_name='FishMoving-v0'
     # env_name='FishMovingVisualServoContinousSparse-v0'
-    # env = gym.make(env_name)
-    
-    env = FishMovingTargetSpeedController(EP_STEPS=768,random_target=True)
+    env = gym.make(env_name)
+    # env = FishMovingTargetSpeedController(EP_STEPS=768,random_target=True)
     os.makedirs('./logs', exist_ok=True)
     monitor_dir, _ = make_dir_exp(os.path.abspath(os.path.join(os.path.dirname(__file__), './logs')))
     print(monitor_dir)
@@ -53,13 +52,11 @@ def run():
                'target_drop_rate': 0.005,
                'critic_update_delay': 1}
 
-    label = f"{env_name}_" + str(datetime.now()).split(" ")[0]
-    log_dir = os.path.join('runs', label)
     try:
         env._max_episode_steps = env.wrapped_env._max_episode_steps
     except:
         env._max_episode_steps = 768
-    agent = SacAgent(env=env, log_dir=log_dir, **configs)
+    agent = SacAgent(env=env, log_dir=monitor_dir, **configs)
     try:
         agent.run()
     except:

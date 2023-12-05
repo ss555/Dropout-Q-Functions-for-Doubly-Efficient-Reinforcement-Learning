@@ -11,7 +11,6 @@ from rlutils.envs import *
 def run():
     set_high_priority('ss')
     env_name='FishMovingTargetSpeed-v0'
-    # env_name='FishMovingVisualServoContinousSparse-v0'
     env = gym.make(env_name)
     os.makedirs('./logs', exist_ok=True)
     # monitor_dir = os.path.join(os.path.dirname(__file__),'./logs')

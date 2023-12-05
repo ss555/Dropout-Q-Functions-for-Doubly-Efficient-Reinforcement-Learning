@@ -7,11 +7,11 @@ from torch.utils.tensorboard import SummaryWriter
 from rltorch.memory import MultiStepMemory, PrioritizedMemory
 from model import TwinnedQNetwork, GaussianPolicy, RandomizedEnsembleNetwork
 from utils import grad_false, hard_update, soft_update, to_batch, update_params, RunningMeanStats
-import pickle as pkl
 from collections import deque
 import itertools
+import traceback
 import math
-import multiprocessing as mp
+import pickle as pkl
 
 class SacAgent:
     def __init__(self, env, log_dir, num_steps=3000000, batch_size=256,
@@ -21,7 +21,6 @@ class SacAgent:
                  beta_annealing=0.0001, grad_clip=None, critic_updates_per_step=1,
                  start_steps=10000, log_interval=10, target_update_interval=1,
                  eval_interval=1000, cuda=0, seed=0,
-                 # added by TH 20210707
                  eval_runs=1, huber=0, layer_norm=0,
                  method=None, target_entropy=None, target_drop_rate=0.0, critic_update_delay=1, gradients_step=1, eval_episodes_interval=20,resume_training_path=None):
         self.env = env
@@ -101,7 +100,6 @@ class SacAgent:
         self.log_dir = log_dir
         self.model_dir = os.path.join(log_dir, 'model')
         self.summary_dir = os.path.join(log_dir, 'summary')
-
         if not os.path.exists(self.model_dir):
             os.makedirs(self.model_dir)
         if not os.path.exists(self.summary_dir):
@@ -129,17 +127,32 @@ class SacAgent:
         self.multi_step = multi_step
         if resume_training_path is not None:
             self.load_models(resume_training_path)
-
     def save_buffer(self):
-        with open(os.path.join(self.model_dir, 'buffer.pkl'), "w") as file_handler:
-        # Use protocol>=4 to support saving replay buffers >= 4Gb
-        # See https://docs.python.org/3/library/pkl.html
+        print('saving replay buffer')
+        # Use numpy.savez_compressed to save the data
+        # np.savez_compressed(os.path.join(self.model_dir, 'buffer.npz'), self.memory)
+        with open(os.path.join(self.model_dir, 'buffer.pkl'), "wb") as file_handler:
             pkl.dump(self.memory, file_handler, protocol=pkl.HIGHEST_PROTOCOL)
+
+    def load_buffer(self, resume_path):
+        with open('buffer.pkl', 'wb') as file_handler:
+            pkl.dump(self.memory, file_handler, protocol=pkl.HIGHEST_PROTOCOL)
+
+        # self.memory=np.load(resume_path)
+
 
     def load_models(self, resume_training_path):
         self.policy.load_state_dict(torch.load(os.path.join(resume_training_path, 'policy.pth')))
         self.critic.load_state_dict(torch.load(os.path.join(resume_training_path, 'critic.pth')))
         self.critic_target.load_state_dict(torch.load(os.path.join(resume_training_path, 'critic_target.pth')))
+        try:
+            self.alpha_optim.load_state_dict(torch.load(os.path.join(resume_training_path, 'alpha_optim.pth')))
+        except:
+            traceback.print_exc()
+        try:
+            self.load_buffer(os.path.join(resume_training_path, 'buffer.npz'))
+        except:
+            traceback.print_exc()
 
     def run(self):
         while True:
@@ -208,7 +221,11 @@ class SacAgent:
 
             # ignore done if the agent reach time horizons
             # (set done=True only when the agent fails)
-            if episode_steps >= self.env._max_episode_steps or ("TimeLimit.truncated" in info.keys() and info["TimeLimit.truncated"]):
+            if hasattr(self.env,'_max_episode_steps') and episode_steps >= self.env._max_episode_steps:
+                masked_done = False
+            elif hasattr(self.env,'N_STEPS') and episode_steps >= self.env.N_STEPS:
+                masked_done = False
+            elif ("TimeLimit.truncated" in info.keys() and info["TimeLimit.truncated"]): # TODO check this
                 masked_done = False
             else:
                 masked_done = done
@@ -240,6 +257,8 @@ class SacAgent:
         self.episodes_num += 1
         if self.episodes_num % self.eval_episodes_interval == 0:
             self.evaluate()
+
+
 
         # We log running mean of training rewards.
         self.train_rewards.append(episode_reward)
@@ -306,6 +325,7 @@ class SacAgent:
     def calc_critic_4redq_loss(self, batch, weights):
         states, actions, rewards, next_states, dones = batch
         curr_qs = self.critic.allQs(states, actions)
+
         target_q = self.calc_target_q(*batch)
 
         # TD errors for updating priority weights
@@ -445,7 +465,7 @@ class SacAgent:
         self.policy.save(os.path.join(self.model_dir, 'policy.pth'))
         self.critic.save(os.path.join(self.model_dir, 'critic.pth'))
         self.critic_target.save(os.path.join(self.model_dir, 'critic_target.pth'))
-        print(f'Saved models.{self.model_dir}')
+        torch.save(self.alpha_optim.state_dict(),os.path.join(self.model_dir, 'alpha_optim.pth'))
 
     def __del__(self):
         self.writer.close()

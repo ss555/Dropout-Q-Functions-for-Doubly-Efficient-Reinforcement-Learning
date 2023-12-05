@@ -88,12 +88,3 @@ for t, a, label, ly  in zip([obs_arr[:,0], obs_arr[:,1], acts], ax[:], axis_labe
 plt.xlabel('time steps')
 plt.savefig(f'./FishMovingTargetSpeedFixedDroq.pdf')
 plt.show()
-
-
-# fig, ax = plt.subplots(3,1,sharex=True)
-# fig.suptitle(f'droq:{np.sum(r_arr)}')
-# ax[0].plot(acts)
-# ax[1].plot(obs_arr[:,2])
-# ax[2].plot(obs_arr[:,1])
-# plt.xlabel('time step')
-# plt.show()

@@ -10,8 +10,10 @@ from rlutils.envs import *
 
 def run():
     # env_name='FishMovingTargetSpeed-v0'
-    env_name='FishMovingTargetSpeedController-v0'
-    env = FishMovingTargetSpeedController(EP_STEPS=768,random_target=True)
+    # env_name='FishMovingTargetSpeedController-v0'
+    # env = FishMovingTargetSpeedController(EP_STEPS=768,random_target=True)
+    env = dummyEnv()
+
     os.makedirs('./logs', exist_ok=True)
     monitor_dir, _ = make_dir_exp(os.path.abspath(os.path.join(os.path.dirname(__file__), './logs')))
     print(monitor_dir)
@@ -49,14 +51,34 @@ def run():
                'target_drop_rate': 0.005,
                'critic_update_delay': 1}
 
-    label = f"{env_name}_" + str(datetime.now()).split(" ")[0]
-    log_dir = os.path.join('runs', label)
-    try:
-        env._max_episode_steps = env.wrapped_env._max_episode_steps
-    except:
-        env._max_episode_steps = 768
+    agent = SacAgent(env=env, log_dir=monitor_dir, **configs)
+    dfs, names = load_data('/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/logs/105',drop_reset_observation=False)
+    # from deeprl.utils import plot_data_from_dirs_exp_linear
 
-    agent = SacAgent(env=env, log_dir=log_dir, **configs)
+    for df in dfs:
+        next_state = None
+        for i in range(1,len(df)):
+            if next_state is None:
+                array = list(filter(None, df['obs'][i - 1].replace('[', '').replace(']', '').replace('\n', '').split(' ')))
+                state = [float(x) for x in array]
+            else:
+                state = next_state
+
+            array = list(filter(None, df['obs'][i].replace('[', '').replace(']', '').replace('\n', '').split(' ')))
+            next_state = [float(x) for x in array]
+
+            action = df['action'][i]
+            action = float(action.strip('[]'))
+            reward = df['reward'][i]
+            done = False
+            masked_done = False
+
+        agent.memory.append(state, action, reward, next_state, masked_done, episode_done=done)
+        agent.learn()
+        agent.episodes_num += 1
+        agent.steps += 128
+        print(f'offline episode {i} done')
+
 
 
 

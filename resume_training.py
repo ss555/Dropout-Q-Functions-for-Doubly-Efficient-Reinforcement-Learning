@@ -63,9 +63,16 @@ os.makedirs('./logs', exist_ok=True)
 monitor_dir, _ = make_dir_exp(os.path.abspath(os.path.join(os.path.dirname(__file__), './logs')))
 hidden_units=[256, 256]
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print(f'using device: {device}')
-env = FishMovingTargetSpeed(EP_STEPS=3000)
 
-agent=SacAgent(env=env, resume_training_path=path, log_dir=monitor_dir,**configs)
-agent.run()
+path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/runs/FishMovingTargetSpeedController-v0_2023-12-04/model'
+path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/logs/173/model'
 
+# env = FishMovingTargetSpeedController(EP_STEPS=768,random_target=True)
+env = FishMovingTargetSpeed()
+
+agent=SacAgent(env=env, resume_training_path=path, log_dir=monitor_dir, **configs)
+try:
+    agent.run()
+except:
+    traceback.print_exc()
+    agent.save_buffer()
