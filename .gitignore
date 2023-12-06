@@ -1,11 +1,17 @@
 
 /logs
+/async-droq/logs
+/async-droq/runs
 /5-droq
 /runs
 /runsA
 
 ./t.py
 **/*.mp4
+**/*__pycache__
+__pycache__
+**/*__pyc
 **/*.pdf
 **/*.pkl
 t.py
+

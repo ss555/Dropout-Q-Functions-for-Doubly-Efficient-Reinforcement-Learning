@@ -20,8 +20,8 @@ def run():
     env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
     env = TimeLimit(env, max_episode_steps=768)
 
-    configs = {'num_steps': 10000,
-               'batch_size': 1024,
+    configs = {'num_steps': 100000,
+               'batch_size': 256,
                'lr': 0.0003,
                'hidden_units': [256, 256],
                'memory_size': 1000000.0,
@@ -35,8 +35,8 @@ def run():
                'beta': 0.4,
                'beta_annealing': 3e-07,
                'grad_clip': None,
-               'critic_updates_per_step': 100,#20,
-               'gradients_step': 768,#20,
+               'critic_updates_per_step': 20,#20,#50,#20,
+               'gradients_step': 2*128,#768,#20,
                 'eval_episodes_interval': 10,
                'start_steps': 0,
                'log_interval': 10,
@@ -52,7 +52,7 @@ def run():
                'critic_update_delay': 1}
 
     agent = SacAgent(env=env, log_dir=monitor_dir, **configs)
-    dfs, names = load_data('/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/logs/105',drop_reset_observation=False)
+    dfs, names = load_data('./logs/105',drop_reset_observation=False)
     # from deeprl.utils import plot_data_from_dirs_exp_linear
 
     for df in dfs:

@@ -9,18 +9,20 @@ from rlutils.utils import *
 from rlutils.envs import *
 
 def run():
-    set_high_priority('ss')
     env_name='FishMovingTargetSpeed-v0'
+    env_name='FishMovingTargetSpeedController-v0'
+    # env_name='FishMoving-v0'
+    # env_name='FishMovingVisualServoContinousSparse-v0'
     env = gym.make(env_name)
+    # env = FishMovingTargetSpeedController(EP_STEPS=768,random_target=True)
     os.makedirs('./logs', exist_ok=True)
-    # monitor_dir = os.path.join(os.path.dirname(__file__),'./logs')
     monitor_dir, _ = make_dir_exp(os.path.abspath(os.path.join(os.path.dirname(__file__), './logs')))
     print(monitor_dir)
     env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
     env = TimeLimit(env, max_episode_steps=768)
 
-    configs = {'num_steps': 100000,
-               'batch_size': 1024,
+    configs = {'num_steps': 150000,
+               'batch_size': 256,
                'lr': 0.0003,
                'hidden_units': [256, 256],
                'memory_size': 1000000.0,
@@ -29,35 +31,37 @@ def run():
                'entropy_tuning': True,
                'ent_coef': 0.2,
                'multi_step': 1,
-               'per': 1,
+               'per': 0,#1,
                'alpha': 0.6,
                'beta': 0.4,
                'beta_annealing': 3e-07,
                'grad_clip': None,
-               'critic_updates_per_step': 20,#20,
+               'critic_updates_per_step': 10,#20,
                'gradients_step': 768,#20,
+                'eval_episodes_interval': 10,
                'start_steps': 0,
                'log_interval': 10,
                'target_update_interval': 1,
                'cuda': 0,
                'seed': 0,
-               'eval_runs': 1,
+               'eval_runs': 3,
                'huber': 0,
                'layer_norm': 1,
                'target_entropy': -1.0,
                'method': 'sac',
                'target_drop_rate': 0.005,
                'critic_update_delay': 1}
-
-    
-    label = f"{env_name}_" + str(datetime.now()).split(" ")[0]
-    log_dir = os.path.join('runs', label)
+    save_yaml_dict(configs, os.path.join(monitor_dir, 'configs.yaml'))
     try:
         env._max_episode_steps = env.wrapped_env._max_episode_steps
     except:
         env._max_episode_steps = 768
-    agent = SacAgent(env=env, log_dir=log_dir, **configs)
-    agent.run()
+    agent = SacAgent(env=env, log_dir=monitor_dir, **configs)
+    try:
+        agent.run()
+    except:
+        traceback.print_exc()
+        agent.save_buffer()
 
 
 if __name__ == '__main__':

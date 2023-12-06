@@ -10,7 +10,7 @@ from rlutils.envs import *
 
 def run():
     env_name='FishMovingTargetSpeed-v0'
-    # env_name='FishMovingTargetSpeedController-v0'
+    env_name='FishMovingTargetSpeedController-v0'
     # env_name='FishMoving-v0'
     # env_name='FishMovingVisualServoContinousSparse-v0'
     env = gym.make(env_name)
@@ -21,8 +21,8 @@ def run():
     env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
     env = TimeLimit(env, max_episode_steps=768)
 
-    configs = {'num_steps': 10000,
-               'batch_size': 1024,
+    configs = {'num_steps': 150000,
+               'batch_size': 256,
                'lr': 0.0003,
                'hidden_units': [256, 256],
                'memory_size': 1000000.0,
@@ -36,7 +36,7 @@ def run():
                'beta': 0.4,
                'beta_annealing': 3e-07,
                'grad_clip': None,
-               'critic_updates_per_step': 100,#20,
+               'critic_updates_per_step': 20,#20,
                'gradients_step': 768,#20,
                 'eval_episodes_interval': 10,
                'start_steps': 0,
@@ -51,7 +51,7 @@ def run():
                'method': 'sac',
                'target_drop_rate': 0.005,
                'critic_update_delay': 1}
-
+    save_yaml_dict(configs, os.path.join(monitor_dir, 'configs.yaml'))
     try:
         env._max_episode_steps = env.wrapped_env._max_episode_steps
     except:
