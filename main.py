@@ -3,6 +3,7 @@ import argparse
 import datetime
 import gym
 from agent import SacAgent
+from agent_async import SacAgentAsync
 from rlutils.envs import *
 from rlutils.env_wrappers import LoggerWrap
 from rlutils.utils import *
@@ -21,7 +22,7 @@ def run():
     env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
     env = TimeLimit(env, max_episode_steps=768)
 
-    configs = {'num_steps': 150000,
+    configs = {'num_steps': 100000,
                'batch_size': 256,
                'lr': 0.0003,
                'hidden_units': [256, 256],
@@ -31,7 +32,7 @@ def run():
                'entropy_tuning': True,
                'ent_coef': 0.2,
                'multi_step': 1,
-               'per': 0,#1,
+               'per': 1,
                'alpha': 0.6,
                'beta': 0.4,
                'beta_annealing': 3e-07,
@@ -50,13 +51,17 @@ def run():
                'target_entropy': -1.0,
                'method': 'sac',
                'target_drop_rate': 0.005,
-               'critic_update_delay': 1}
-    save_yaml_dict(configs, os.path.join(monitor_dir, 'configs.yaml'))
+               'critic_update_delay': 1
+               }    
+
     try:
         env._max_episode_steps = env.wrapped_env._max_episode_steps
     except:
         env._max_episode_steps = 768
-    agent = SacAgent(env=env, log_dir=monitor_dir, **configs)
+    # agent = SacAgent(env=env, log_dir=monitor_dir, **configs)
+    agent = SacAgentAsync(env=env, log_dir=monitor_dir, **configs)
+    configs.update({'env_name': env_name,'agent':agent.__class__.__name__})
+    save_yaml_dict(configs, os.path.join(monitor_dir, 'configs.yaml'))
     try:
         agent.run()
     except:

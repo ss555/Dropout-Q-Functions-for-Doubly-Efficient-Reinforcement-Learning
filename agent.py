@@ -12,6 +12,7 @@ import itertools
 import traceback
 import math
 import pickle as pkl
+import time
 
 class SacAgent:
     def __init__(self, env, log_dir, num_steps=3000000, batch_size=256,
@@ -106,6 +107,7 @@ class SacAgent:
             os.makedirs(self.summary_dir)
 
         self.writer = SummaryWriter(log_dir=self.summary_dir)
+
         self.train_rewards = RunningMeanStats(log_interval)
         self.steps = 0
         self.learning_steps = 0
@@ -125,6 +127,7 @@ class SacAgent:
         self.eval_runs = eval_runs
         self.huber = huber
         self.multi_step = multi_step
+        self.start_time = time.time()
         if resume_training_path is not None:
             self.load_models(resume_training_path)
     def save_buffer(self):
@@ -245,12 +248,8 @@ class SacAgent:
                 # We need to give true done signal with addition to masked done
                 # signal to calculate multi-step rewards.
                 self.memory.append(state, action, reward, next_state, masked_done, episode_done=done)
+                
             state = next_state
-            # time.sleep(0.02)
-
-            # if self.is_update():
-            #     self.learn()
-            #
         if self.is_update():
             self.learn()
         self.save_models()
@@ -320,6 +319,7 @@ class SacAgent:
 
         self.writer.add_scalar('policy_loss/train', policy_loss.item(), self.steps)
         self.writer.add_scalar('entropy/train', entropies.mean().item(), self.steps)
+        self.writer.add_scalar('time', time.time() - self.start_time, self.steps)
 
 
     def calc_critic_4redq_loss(self, batch, weights):

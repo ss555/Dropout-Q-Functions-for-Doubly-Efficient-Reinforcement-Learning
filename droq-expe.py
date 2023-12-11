@@ -2,6 +2,7 @@ import os
 import argparse
 import datetime
 from agent import SacAgent
+from agent_async import SacAgentAsync
 from rlutils.utils import *
 import socket
 from rlutils.linear_expe import make_red_yellow_env_speed, DummyconnectionEnv
@@ -39,8 +40,10 @@ def run():
     # env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
     # env = TimeLimit(env, max_episode_steps=len_episode)
 
-    configs =    {'num_steps': 100000,
-    'batch_size': 512,#256,
+    configs = {'per': 1,
+    'gradients_step': 2*len_episode,#20,
+    'num_steps': 100000,
+    'batch_size': 256,#512,#256,
     'lr': 0.0003,
     'hidden_units': [256, 256],
     'memory_size': 1000000.0,
@@ -48,15 +51,13 @@ def run():
     'tau': 0.005,
     'entropy_tuning': True,
     'ent_coef': 0.2,
-    'multi_step': 1,
-    'per': 0,
+    'multi_step': 1,    
     'alpha': 0.6,
     'beta': 0.4,
     'beta_annealing': 3e-07,
     'grad_clip': None,
     'critic_updates_per_step': 20,#20,
-    'eval_episodes_interval': 50,
-    'gradients_step': len_episode,#20,
+    'eval_episodes_interval': 50,    
     'start_steps': 500,
     'log_interval': 10,
     'target_update_interval': 1,
@@ -71,17 +72,20 @@ def run():
     'target_drop_rate': 0.005,
     'log_dir': monitor_dir,
     'critic_update_delay': 1}
+    resume_training_path=None#'./logs/138/model'#105
+    configs.update({'resume_training_path': resume_training_path})
+    save_yaml_dict(configs, os.path.join(monitor_dir, 'configs.yaml'))
     try:
-        agent = SacAgent(env=env, **configs)
+        agent = SacAgentAsync(env=env, **configs)
         agent.run()
     except:
         traceback.print_exc()
     finally:
+        agent.save_models(prefix='final_')
+        agent.save_buffer()
         s.close()
         vid.release()
         cv2.destroyAllWindows()
         
-
-
 if __name__ == '__main__':
     run()

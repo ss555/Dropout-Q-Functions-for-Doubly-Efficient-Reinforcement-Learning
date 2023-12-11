@@ -8,6 +8,9 @@
 
 ./t.py
 **/*.mp4
+**/*.csv
+**/*.pth
+**/*.png
 **/*__pycache__
 __pycache__
 **/*__pyc

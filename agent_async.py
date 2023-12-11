@@ -13,8 +13,9 @@ import traceback
 import math
 import pickle as pkl
 import threading
+import time
 
-class SacAgent:
+class SacAgentAsync:
     def __init__(self, env, log_dir, num_steps=3000000, batch_size=256,
                  lr=0.0003, hidden_units=[256, 256], memory_size=1e6,
                  gamma=0.99, tau=0.005, entropy_tuning=True, ent_coef=0.2,
@@ -126,6 +127,7 @@ class SacAgent:
         self.eval_runs = eval_runs
         self.huber = huber
         self.multi_step = multi_step
+        self.start_time = time.time()
         if resume_training_path is not None:
             self.load_models(resume_training_path)
     def save_buffer(self):
@@ -207,23 +209,22 @@ class SacAgent:
         return target_q
 
     def interact(self):
-        global episode_reward, episode_steps
-        episode_reward = 0.
-        episode_steps = 0
+        self.episode_reward = 0.
+        self.episode_steps = 0
         done = False
         state = self.env.reset()
         while not done:
             action = self.act(state)
             next_state, reward, done, info = self.env.step(action)
             self.steps += 1
-            episode_steps += 1
-            episode_reward += reward
+            self.episode_steps += 1
+            self.episode_reward += reward
 
             # ignore done if the agent reach time horizons
             # (set done=True only when the agent fails)
-            if hasattr(self.env,'_max_episode_steps') and episode_steps >= self.env._max_episode_steps:
+            if hasattr(self.env,'_max_episode_steps') and self.episode_steps >= self.env._max_episode_steps:
                 masked_done = False
-            elif hasattr(self.env,'N_STEPS') and episode_steps >= self.env.N_STEPS:
+            elif hasattr(self.env,'N_STEPS') and self.episode_steps >= self.env.N_STEPS:
                 masked_done = False
             elif ("TimeLimit.truncated" in info.keys() and info["TimeLimit.truncated"]): # TODO check this
                 masked_done = False
@@ -249,28 +250,28 @@ class SacAgent:
 
     def train_episode(self):
         self.episodes += 1
-        episode_reward=episode_steps=None
         
-        # x = threading.Thread(target=self.interact)#, args=(index,))
-        # x.start()
-        self.interact() 
+        x = threading.Thread(target=self.interact)#, args=(index,))
+        x.start()
+        # self.interact() 
 
         if self.is_update():
             self.learn()
+        x.join()
         self.save_models()
         self.episodes_num += 1
         if self.episodes_num % self.eval_episodes_interval == 0:
             self.evaluate()
 
         # We log running mean of training rewards.
-        self.train_rewards.append(episode_reward)
+        self.train_rewards.append(self.episode_reward)
         self.writer.add_scalar('reward/train', self.train_rewards.get(), self.steps)
 
         print(f'episode: {self.episodes}  '
-              f'episode steps: {episode_steps}  '
-              f'reward: {episode_reward}')
+              f'episode steps: {self.episode_steps}  '
+              f'reward: {self.episode_reward}')
         
-        # x.join()
+        
 
     def learn(self):
         self.learning_steps += 1
@@ -324,6 +325,7 @@ class SacAgent:
 
         self.writer.add_scalar('policy_loss/train', policy_loss.item(), self.steps)
         self.writer.add_scalar('entropy/train', entropies.mean().item(), self.steps)
+        self.writer.add_scalar('time', time.time() - self.start_time, self.steps)
 
 
     def calc_critic_4redq_loss(self, batch, weights):
@@ -465,11 +467,11 @@ class SacAgent:
             f.flush()
 
 
-    def save_models(self):
-        self.policy.save(os.path.join(self.model_dir, 'policy.pth'))
-        self.critic.save(os.path.join(self.model_dir, 'critic.pth'))
-        self.critic_target.save(os.path.join(self.model_dir, 'critic_target.pth'))
-        torch.save(self.alpha_optim.state_dict(),os.path.join(self.model_dir, 'alpha_optim.pth'))
+    def save_models(self,prefix=''):
+        self.policy.save(os.path.join(self.model_dir, f'{prefix}policy.pth'))
+        self.critic.save(os.path.join(self.model_dir, f'{prefix}critic.pth'))
+        self.critic_target.save(os.path.join(self.model_dir, f'{prefix}critic_target.pth'))
+        torch.save(self.alpha_optim.state_dict(),os.path.join(self.model_dir, f'{prefix}alpha_optim.pth'))
 
     def __del__(self):
         self.writer.close()
