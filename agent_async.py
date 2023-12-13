@@ -24,10 +24,12 @@ class SacAgentAsync:
                  start_steps=10000, log_interval=10, target_update_interval=1,
                  eval_interval=1000, cuda=0, seed=0,
                  eval_runs=1, huber=0, layer_norm=0,
-                 method=None, target_entropy=None, target_drop_rate=0.0, critic_update_delay=1, gradients_step=1, eval_episodes_interval=20,resume_training_path=None):
+                 method=None, target_entropy=None, target_drop_rate=0.0, critic_update_delay=1, save_model_interval=1,
+                 gradients_step=1, eval_episodes_interval=20,resume_training_path=None):
         self.env = env
         self.episodes = 0
         self.gradients_step= gradients_step
+        self.save_model_interval = save_model_interval
 
         torch.manual_seed(seed)
         np.random.seed(seed)
@@ -258,7 +260,8 @@ class SacAgentAsync:
         if self.is_update():
             self.learn()
         x.join()
-        self.save_models()
+        if self.save_model_interval!=-1 and self.episodes%self.save_model_interval==0:
+            self.save_models()
         self.episodes_num += 1
         if self.episodes_num % self.eval_episodes_interval == 0:
             self.evaluate()

@@ -55,6 +55,7 @@ def run():
 
 
     resume_training_path='./logs/136/model'
+    resume_training_path='./logs/152/model'
     agent = SacAgent(env=env, resume_training_path=resume_training_path,**configs)
     agent.writer.add_text('metrics', json.dumps(configs, indent=4), 0)
     save_yaml_dict(configs, os.path.join(monitor_dir, 'configs.yaml'))

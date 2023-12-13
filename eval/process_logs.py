@@ -10,12 +10,23 @@ import warnings
 import subprocess
 from rlutils.utils import load_data
 import matplotlib
-matplotlib.use("Agg")
-logpath = '../logs/136'
-
-dfs, names = load_data(str(logpath))
-os.makedirs(os.path.join(logpath,'figs'),exist_ok=True)
 from rlutils.utils import plot_data_from_dirs_exp_linear
-for i,df in zip(names, dfs):
-    plot_data_from_dirs_exp_linear(df,os.path.join(logpath,'figs/episode_'+str(i)+'.png'))    
+# matplotlib.use("Agg")
+logpath = '../logs/152'
+plot_all_episodes=False
+
+#plot best episode
+dfs, names = load_data(str(logpath))
+rews=[sum(d['reward']) for d in dfs]
+best_episode=names[np.argmax(rews)]
+print(f'best episode : {best_episode}, reward : {np.max(rews)}')
+df=dfs[np.argmax(rews)]
+plot_data_from_dirs_exp_linear(df,os.path.join(logpath,'figs/episode_'+str(best_episode)+'.png'),show=True)
+
+if plot_all_episodes:
+    dfs, names = load_data(str(logpath))
+    os.makedirs(os.path.join(logpath,'figs'),exist_ok=True)
+
+    for i,df in zip(names, dfs):
+        plot_data_from_dirs_exp_linear(df,os.path.join(logpath,'figs/episode_'+str(i)+'.png'))
     
