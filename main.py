@@ -14,6 +14,7 @@ def run():
     env_name='FishMovingTargetSpeedController-v0'
     # env_name='FishMoving-v0'
     # env_name='FishMovingVisualServoContinousSparse-v0'
+    env_name='FishStationary-v0'
     env = gym.make(env_name)
     # env = FishMovingTargetSpeedController(EP_STEPS=768,random_target=True)
     os.makedirs('./logs', exist_ok=True)
@@ -22,7 +23,7 @@ def run():
     env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
     env = TimeLimit(env, max_episode_steps=768)
 
-    configs = {'num_steps': 100000,
+    configs = {'num_steps': 200000,
                'batch_size': 256,
                'lr': 0.0003,
                'hidden_units': [256, 256],

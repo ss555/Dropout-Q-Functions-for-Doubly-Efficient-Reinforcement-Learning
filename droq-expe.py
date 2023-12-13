@@ -72,9 +72,10 @@ def run():
     'target_drop_rate': 0.005,
     'log_dir': monitor_dir,
     'critic_update_delay': 1}
-    resume_training_path=None#'./logs/138/model'#105
+    resume_training_path='./logs/152/model'#None#'./logs/138/model'#105
     configs.update({'resume_training_path': resume_training_path})
     save_yaml_dict(configs, os.path.join(monitor_dir, 'configs.yaml'))
+    
     try:
         agent = SacAgentAsync(env=env, **configs)
         agent.run()

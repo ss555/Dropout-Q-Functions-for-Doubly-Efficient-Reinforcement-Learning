@@ -1,5 +1,6 @@
 
 /logs
+/old_logs
 /async-droq/logs
 /async-droq/runs
 /5-droq
