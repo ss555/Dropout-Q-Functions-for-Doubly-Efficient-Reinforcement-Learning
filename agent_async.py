@@ -1,11 +1,10 @@
 import os
-import time
 import numpy as np
 import torch
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 from rltorch.memory import MultiStepMemory, PrioritizedMemory
-from model import TwinnedQNetwork, GaussianPolicy, RandomizedEnsembleNetwork
+from model import TwinnedQNetwork, GaussianPolicy
 from utils import grad_false, hard_update, soft_update, to_batch, update_params, RunningMeanStats
 from collections import deque
 import itertools
@@ -22,10 +21,11 @@ class SacAgentAsync:
                  multi_step=1, per=False, alpha=0.6, beta=0.4,
                  beta_annealing=0.0001, grad_clip=None, critic_updates_per_step=1,
                  start_steps=10000, log_interval=10, target_update_interval=1,
-                 eval_interval=1000, cuda=0, seed=0,
+                 scheduler=None, cuda=0, seed=0,
                  eval_runs=1, huber=0, layer_norm=0,
                  method=None, target_entropy=None, target_drop_rate=0.0, critic_update_delay=1, save_model_interval=1,
                  gradients_step=1, eval_episodes_interval=20,resume_training_path=None):
+
         self.env = env
         self.episodes = 0
         self.gradients_step= gradients_step
@@ -40,7 +40,6 @@ class SacAgentAsync:
         self.method = method
         self.critic_update_delay = critic_update_delay
         self.target_drop_rate = target_drop_rate
-
         self.device = torch.device("cuda:" + str(cuda) if torch.cuda.is_available() else "cpu")
 
         # policy
@@ -83,7 +82,15 @@ class SacAgentAsync:
             # We optimize log(alpha), instead of alpha.
             self.log_alpha = torch.zeros(1, requires_grad=True, device=self.device)
             self.alpha = self.log_alpha.exp()
-            self.alpha_optim = Adam([self.log_alpha], lr=lr)
+            self.scheduler=scheduler
+            if self.scheduler == "linear":
+                # cosine annealing
+                self.alpha_optim = Adam([self.log_alpha], lr=lr)
+                self.alpha_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                    self.alpha_optim, num_steps, eta_min=0, last_epoch=-1)
+            else:
+                self.alpha_optim = Adam([self.log_alpha], lr=lr)
+
         else:
             # fixed alpha
             self.alpha = torch.tensor(ent_coef).to(self.device)
@@ -130,6 +137,7 @@ class SacAgentAsync:
         self.huber = huber
         self.multi_step = multi_step
         self.start_time = time.time()
+
         if resume_training_path is not None:
             self.load_models(resume_training_path)
     def save_buffer(self):
@@ -142,9 +150,6 @@ class SacAgentAsync:
     def load_buffer(self, resume_path):
         with open('buffer.pkl', 'wb') as file_handler:
             pkl.dump(self.memory, file_handler, protocol=pkl.HIGHEST_PROTOCOL)
-
-        # self.memory=np.load(resume_path)
-
 
     def load_models(self, resume_training_path):
         self.policy.load_state_dict(torch.load(os.path.join(resume_training_path, 'policy.pth')))
@@ -253,9 +258,8 @@ class SacAgentAsync:
     def train_episode(self):
         self.episodes += 1
         
-        x = threading.Thread(target=self.interact)#, args=(index,))
+        x = threading.Thread(target=self.interact)
         x.start()
-        # self.interact() 
 
         if self.is_update():
             self.learn()
@@ -302,9 +306,6 @@ class SacAgentAsync:
                     if self.per:
                         # update priority weights
                         self.memory.update_priority(indices, errors.cpu().numpy())
-
-
-
             # policy and alpha update
             if self.per:
                 batch, indices, weights = self.memory.sample(self.batch_size)
@@ -330,25 +331,6 @@ class SacAgentAsync:
         self.writer.add_scalar('entropy/train', entropies.mean().item(), self.steps)
         self.writer.add_scalar('time', time.time() - self.start_time, self.steps)
 
-
-    def calc_critic_4redq_loss(self, batch, weights):
-        states, actions, rewards, next_states, dones = batch
-        curr_qs = self.critic.allQs(states, actions)
-
-        target_q = self.calc_target_q(*batch)
-
-        # TD errors for updating priority weights
-        errors = torch.abs(curr_qs[0].detach() - target_q) # TODO better to use average of all errors?
-        # We log means of Q to monitor training.
-        mean_q1 = curr_qs[0].detach().mean().item()
-        mean_q2 = curr_qs[1].detach().mean().item()
-
-        # Critic loss is mean squared TD errors with priority weights.
-        losses = []
-        for curr_q in curr_qs:
-            losses.append(torch.mean((curr_q - target_q).pow(2) * weights))
-        return losses, errors, mean_q1, mean_q2
-
     def calc_critic_loss(self, batch, weights):
         assert self.method == "sac" or self.method == "duvn" or self.method == "monosac", "This method is only for sac or duvn or monosac method"
 
@@ -367,22 +349,17 @@ class SacAgentAsync:
 
     def calc_policy_loss(self, batch, weights):
         states, actions, rewards, next_states, dones = batch
-
         # We re-sample actions to calculate expectations of Q.
         sampled_action, entropy, _ = self.policy.sample(states)
         # expectations of Q with clipped double Q technique
-        if self.method == "redq":
-            q = self.critic.averageQ(states, sampled_action)
+        q1, q2 = self.critic(states, sampled_action)
+        if (self.method == "duvn") or (self.method == "monosac"):
+            q2 = q1 # discard q2
+        if self.target_drop_rate > 0.0:
+            q = 0.5 * (q1 + q2)
         else:
-            q1, q2 = self.critic(states, sampled_action)
-            if (self.method == "duvn") or (self.method == "monosac"):
-                q2 = q1 # discard q2
-            if self.target_drop_rate > 0.0:
-                q = 0.5 * (q1 + q2)
-            else:
-                q = torch.min(q1, q2)
-        # Policy objective is maximization of (Q + alpha * entropy) with
-        # priority weights.
+            q = torch.min(q1, q2)
+        # Policy objective is maximization of (Q + alpha * entropy) with priority weights.
         policy_loss = torch.mean((- q - self.alpha * entropy) * weights)
         return policy_loss, entropy
 
@@ -460,11 +437,11 @@ class SacAgentAsync:
         with open(self.log_dir + "/" + "reward.csv", "a") as f:
             f.write(str(self.steps) + "," + str(mean_return) + ",\n")
             f.flush()
-        #
+
         with open(self.log_dir + "/" + "avrbias.csv", "a") as f:
             f.write(str(self.steps) + "," + str(mean_norm_score) + ",\n")
             f.flush()
-        #
+
         with open(self.log_dir + "/" + "stdbias.csv", "a") as f:
             f.write(str(self.steps) + "," + str(std_norm_score) + ",\n")
             f.flush()
