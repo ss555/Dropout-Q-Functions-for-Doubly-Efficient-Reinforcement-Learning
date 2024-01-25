@@ -22,36 +22,70 @@ import numpy as np
 from copy import deepcopy
 from rlutils.utils import config_paper
 from rlutils.env_wrappers import FishMovingRenderWrapper, VideoRecorderWrapper
-c= config_paper()
-EP_STEPS = 768
-# path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/runs/droq/FishMovingTargetSpeed-v0_2023-11-08/model/policy.pth'
-path='./runs/FishMovingTargetSpeed-v0_2023-11-22/model/policy.pth'
-path='./runs/FishMovingTargetSpeed-v0_2023-11-23/model/policy.pth'
+import moviepy.editor as mpy
+from gym.wrappers import TimeLimit
+# from gym.wrappers.monitoring.video_recorder import VideoRecorder
+c = config_paper()
+EP_STEPS = 1000
 
+# path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/runs/droq/FishMovingTargetSpeed-v0_2023-11-08/model/policy.pth'
+# path='./runs/FishMovingTargetSpeed-v0_2023-11-22/model/policy.pth'
+path='./runs/FishMovingTargetSpeedController-v0_2023-11-25/model/policy.pth'
+
+configs = {'num_steps': 100000,
+    'batch_size': 256,
+    'lr': 0.0003,
+    'hidden_units': [256, 256],
+    'memory_size': 1000000.0,
+    'gamma': 0.99,
+    'tau': 0.005,
+    'entropy_tuning': True,
+    'ent_coef': 0.2,
+    'multi_step': 1,
+    'per': 0,
+    'alpha': 0.6,
+    'beta': 0.4,
+    'beta_annealing': 3e-07,
+    'grad_clip': None,
+    'critic_updates_per_step': 20,
+    'start_steps': 5000,
+    'log_interval': 10,
+    'target_update_interval': 1,
+    'eval_interval': 1000,
+    'cuda': 0,
+    'seed': 0,
+    'eval_runs': 1,
+    'huber': 0,
+    'layer_norm': 1,
+    'target_entropy': -1.0,
+    'method': 'sac',
+    'target_drop_rate': 0.005,
+    'critic_update_delay': 1}
 
 hidden_units=[256, 256]
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f'using device: {device}')
-env = FishMovingTargetSpeed(EP_STEPS=3000)
-env = FishMovingRenderWrapper(env, renderWindow=True)
+env = FishMovingTargetSpeedController(EP_STEPS=EP_STEPS) #gym.make('FishMovingTargetSpeed-v0')
+# env = TimeLimit(env, max_episode_steps=1000)
+
+
 policy = GaussianPolicy(
             env.observation_space.shape[0],
             env.action_space.shape[0],
             hidden_units=hidden_units).to(device)
-
 policy.load_state_dict(torch.load(path))
+
 done = False
 r_arr, obs_arr, acts, consigne = [], [], [], []
 i = 0
 obs=env.reset()
-env.state = obs
-targets = [2,1.5,1,0.5,0]
-targets = [1,1.5,2,0.5,0]
-env.target = targets[0]
-c=0
-
 obs = np.zeros_like(obs)
 env.state = obs
+targets = [2,1.5,1,0.5]
+env.target = targets[0]
+c=0
+frames = []
+env = FishMovingRenderWrapper(env, renderWindow=False)
 while not done:
     act = policy.sample(torch.FloatTensor(obs).to(device))[-1].detach().item()
     obs, rew, done, _ = env.step(act)
@@ -59,21 +93,32 @@ while not done:
     obs_arr.append(obs)
     acts.append(act)
     consigne.append(env.target)
-    i += 1
+    frames.append(env.render(mode='rgb_array'))
 
+    i += 1
+    if i%300==0:
+        c += 1
+        env.unwrapped.target = targets[c%len(targets)]
+        print(env.target)
+
+env.close()
+env.reset()
+
+video = mpy.ImageSequenceClip(frames, fps=50)
+video.write_videofile('training_video.mp4', fps=50)
 
 #take the first 400 steps
 obs_arr = np.array(obs_arr)
-crop_end=800
+crop_end=EP_STEPS
 obs_arr = obs_arr[:crop_end]
 r_arr = r_arr[:crop_end]
 acts = acts[:crop_end]
 
 
-fig, ax = plt.subplots(3,1, figsize=(9,6), sharex=True)
+fig, ax = plt.subplots(3,1,figsize=(9,6),sharex=True)
 axis_labels = ['a', 'b', 'c']
 titles = [r'$\dot{x} [a.u]$', r'$\alpha$ [a.u]', 'Control value [a.u]']
-
+crop_val=400
 for t, a, label, ly  in zip([obs_arr[:,0], obs_arr[:,1], acts], ax[:], axis_labels,titles):
     plt.locator_params(nbins=6)
     a.plot(t)
@@ -86,5 +131,6 @@ for t, a, label, ly  in zip([obs_arr[:,0], obs_arr[:,1], acts], ax[:], axis_labe
     a.set_ylabel(ly)
 
 plt.xlabel('time steps')
-plt.savefig(f'./FishMovingTargetSpeedFixedDroq.pdf')
+plt.savefig(f'./FishMovingTargetSpeedDroq.pdf')
 plt.show()
+

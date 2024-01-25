@@ -21,12 +21,15 @@ from matplotlib import pyplot as plt
 import numpy as np
 from copy import deepcopy
 from rlutils.utils import config_paper
+from rlutils.env_wrappers import FishMovingRenderWrapper, VideoRecorderWrapper
+import moviepy.editor as mpy
+# from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
-c= config_paper()
-
+c = config_paper()
 EP_STEPS = 1000
+
 # path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/runs/droq/FishMovingTargetSpeed-v0_2023-11-08/model/policy.pth'
-path='./runs/FishMovingTargetSpeed-v0_2023-11-22/model/policy.pth'
+# path='./runs/FishMovingTargetSpeed-v0_2023-11-22/model/policy.pth'
 path='./runs/FishMovingTargetSpeedController-v0_2023-11-25/model/policy.pth'
 
 configs = {'num_steps': 100000,
@@ -68,8 +71,8 @@ policy = GaussianPolicy(
             env.observation_space.shape[0],
             env.action_space.shape[0],
             hidden_units=hidden_units).to(device)
-
 policy.load_state_dict(torch.load(path))
+
 done = False
 r_arr, obs_arr, acts, consigne = [], [], [], []
 i = 0
@@ -77,9 +80,9 @@ obs=env.reset()
 obs = np.zeros_like(obs)
 env.state = obs
 targets = [2,1.5,1,0.5]
-# targets = [1,1.5,2,0.5,0]
 env.target = targets[0]
 c=0
+frames = []
 while not done:
     act = policy.sample(torch.FloatTensor(obs).to(device))[-1].detach().item()
     obs, rew, done, _ = env.step(act)
@@ -87,12 +90,22 @@ while not done:
     obs_arr.append(obs)
     acts.append(act)
     consigne.append(env.target)
+    try:
+        frames.append(env.render(mode='rgb_array'))
+    except:
+        pass
     i += 1
     if i%300==0:
         c += 1
         env.target = targets[c%len(targets)]
 
-
+env.close()
+env.reset()
+try:
+    video = mpy.ImageSequenceClip(frames, fps=20)
+    video.write_videofile('training_video.mp4', fps=20)
+except:
+    print('no video')
 #take the first 400 steps
 obs_arr = np.array(obs_arr)
 crop_end=EP_STEPS
@@ -110,8 +123,9 @@ for t, a, label, ly  in zip([obs_arr[:,0], obs_arr[:,1], acts], ax[:], axis_labe
     a.plot(t)
     if ly==titles[0]:
         a.plot(consigne[:crop_end], color='r', linestyle='--')
+        a.legend(['$\dot{x}$', '$\dot{x}_c$'])
     elif ly==titles[1]:
-        a.axhline(y=0, color='r', linestyle='--')
+        a.axhline(y=0, color='black', linestyle='--')
     # Add the label to the plot
     a.text(0.015, 0.95, f'{label})', transform=a.transAxes, fontsize=14, fontweight='bold', va='top')
     a.set_ylabel(ly)
@@ -120,10 +134,3 @@ plt.xlabel('time steps')
 plt.savefig(f'./FishMovingTargetSpeedDroq.pdf')
 plt.show()
 
-# fig, ax = plt.subplots(3,1,sharex=True)
-# fig.suptitle(f'droq:{np.sum(r_arr)}')
-# ax[0].plot(acts)
-# ax[1].plot(obs_arr[:,2])
-# ax[2].plot(obs_arr[:,1])
-# plt.xlabel('time step')
-# plt.show()

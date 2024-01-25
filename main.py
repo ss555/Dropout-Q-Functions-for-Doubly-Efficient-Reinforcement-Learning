@@ -27,7 +27,6 @@ def run():
                'batch_size': 128,
                'lr': 0.0003,
                'scheduler': 'cosine',
-               'scheduler': 'cosine',
                'hidden_units': [256, 256],
                'memory_size': 5000.0,
                'gamma': 0.99,
