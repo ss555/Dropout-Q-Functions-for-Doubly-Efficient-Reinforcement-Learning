@@ -4,12 +4,13 @@
 /async-droq/logs
 /async-droq/runs
 /5-droq
-/runs
+/eval/runs
 /runsA
 
 ./t.py
 **/*.mp4
 **/*.csv
+**/*events.out*
 **/*.pth
 **/*.png
 **/*__pycache__
