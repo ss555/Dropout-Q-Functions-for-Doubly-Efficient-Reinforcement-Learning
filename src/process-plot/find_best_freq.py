@@ -17,7 +17,7 @@ from rlutils.env_wrappers import RlTrainer
 from rlutils.utils import *
 from rlutils.plot_utils import *
 
-path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/logs/152'
+path= '../logs/152'
 total_rews=[]
 dfs=[]
 
@@ -25,7 +25,7 @@ for f in glob.glob(os.path.join(path, '*log_ep*')):
     df = pd.read_csv(f).dropna()
     total_rews.append(df['reward'].mean())
     dfs.append(df)
-
+assert dfs!=[], f'path: {path}'
 total_rews = np.array(total_rews)
 idx_max = np.argmax(total_rews)
 dfm = dfs[idx_max]

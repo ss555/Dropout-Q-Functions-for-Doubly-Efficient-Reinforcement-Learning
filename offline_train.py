@@ -2,7 +2,7 @@ from agent import SacAgent
 from rlutils.env_wrappers import LoggerWrap
 from rlutils.utils import *
 from rlutils.envs import *
-from eval.utils import to_batch
+from src.utils import to_batch
 
 
 def run():

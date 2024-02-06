@@ -5,7 +5,7 @@ from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 from rltorch.memory import MultiStepMemory, PrioritizedMemory
 from model import TwinnedQNetwork, GaussianPolicy
-from eval.utils import grad_false, hard_update, soft_update, to_batch, update_params, RunningMeanStats
+from src.utils import grad_false, hard_update, soft_update, to_batch, update_params, RunningMeanStats
 from collections import deque
 import itertools
 import traceback

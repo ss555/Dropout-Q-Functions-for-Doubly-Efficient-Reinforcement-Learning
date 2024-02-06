@@ -13,7 +13,7 @@ from rlutils.envs import *
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append(os.path.dirname('./..'))
+sys.path.append(os.path.dirname('..'))
 from model import GaussianPolicy
 import torch
 import gym
@@ -30,7 +30,7 @@ EP_STEPS = 1000
 
 # path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/runs/droq/FishMovingTargetSpeed-v0_2023-11-08/model/policy.pth'
 # path='./runs/FishMovingTargetSpeed-v0_2023-11-22/model/policy.pth'
-path='./runs/FishMovingTargetSpeedController-v0_2023-11-25/model/policy.pth'
+path= '../eval/runs/FishMovingTargetSpeedController-v0_2023-11-25/model/policy.pth'
 
 configs = {'num_steps': 100000,
     'batch_size': 256,
