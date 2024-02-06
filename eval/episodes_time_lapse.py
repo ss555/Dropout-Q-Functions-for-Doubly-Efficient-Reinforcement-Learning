@@ -30,7 +30,6 @@ for i, v in enumerate([names[i] for i in np.argsort(idx)]):
         ret, frame = cap.read()
         if ret == False:
             break
-        # if i%30==0:
         if j%5==0:
             cv2.putText(frame, f'episode-{int(i)}', (50, 50), font, font_scale, color, 2, cv2.LINE_AA)
             time_frames.append(frame)
@@ -39,4 +38,4 @@ for i, v in enumerate([names[i] for i in np.argsort(idx)]):
     cv2.destroyAllWindows()
 
 time_frames = np.array(time_frames)
-save_video_from_frames(time_frames, './time_lapse.mp4', fps=60)
+save_video_from_frames(time_frames, '../figs/time_lapse.mp4', fps=60)

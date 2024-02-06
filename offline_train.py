@@ -1,14 +1,9 @@
-import os
-import argparse
-import datetime
-import gym
 from agent import SacAgent
-from rlutils.envs import *
 from rlutils.env_wrappers import LoggerWrap
 from rlutils.utils import *
 from rlutils.envs import *
-from utils import grad_false, hard_update, soft_update, to_batch, update_params, RunningMeanStats
-import torch.utils.tensorboard as tf
+from eval.utils import to_batch
+
 
 def run():
     len_episode = 128

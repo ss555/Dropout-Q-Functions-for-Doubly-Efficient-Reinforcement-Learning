@@ -1,14 +1,7 @@
-import os
-import argparse
-import datetime
-import gym
-from agent import SacAgent
 from agent_async import SacAgentAsync
-from rlutils.envs import *
-from rlutils.env_wrappers import LoggerWrap
 from rlutils.utils import *
 from rlutils.envs import *
-
+from eval.CONFIG import *
 def run():
     n_steps=768
     # env_name='FishMovingTargetSpeed-v0'
@@ -23,38 +16,8 @@ def run():
     # env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
     env = TimeLimit(env, max_episode_steps=768)
 
-    configs = {'num_steps': 100000,
-               'batch_size': 128,
-               'lr': 0.0003,
-               'scheduler': 'cosine',
-               'hidden_units': [256, 256],
-               'memory_size': 5000.0,
-               'gamma': 0.99,
-               'tau': 0.005,
-               'entropy_tuning': True,
-               'ent_coef': 0.0876,
-               'multi_step': 1,
-               'per': 0,
-               'alpha': 0.6,
-               'beta': 0.4,
-               'beta_annealing': 3e-07,
-               'grad_clip': None,
-               'critic_updates_per_step': 20,#20,
-               'gradients_step': n_steps,#20,
-                'eval_episodes_interval': 10,
-               'start_steps': 0,
-               'log_interval': 10,
-               'target_update_interval': 1,
-               'cuda': 0,
-               'seed': 0,
-               'eval_runs': 3,
-               'huber': 0,
-               'layer_norm': 1,
-               'target_entropy': -1.0,
-               'method': 'sac',
-               'target_drop_rate': 0.005,
-               'save_model_interval': -1,
-               'critic_update_delay': 1}
+    configs = FISH_STATIONARY_CONFIG
+    configs = FISH_STATIONARY_CONFIG
 
     try:
         env._max_episode_steps = env.wrapped_env._max_episode_steps

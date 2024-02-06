@@ -9,11 +9,7 @@ import argparse
 import datetime
 import gym
 from agent import SacAgent
-from util.utilsTH import SparseRewardEnv
 #from IQNagent import IQNSacAgent
-import customenvs
-customenvs.register_mbpo_environments()
-from agent4profile import SacAgent4Profile
 from rlutils.envs import *
 import os
 import sys
@@ -23,37 +19,10 @@ import torch
 import gym
 from matplotlib import pyplot as plt
 import numpy as np
+from CONFIG import *
 
 path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/KUCodebase/code/runs/droq/FishMovingTargetSpeed-v0_2023-11-08/model/policy.pth'
-configs = {'num_steps': 100000,
-    'batch_size': 256,
-    'lr': 0.0003,
-    'hidden_units': [256, 256],
-    'memory_size': 1000000.0,
-    'gamma': 0.99,
-    'tau': 0.005,
-    'entropy_tuning': True,
-    'ent_coef': 0.2,
-    'multi_step': 1,
-    'per': 0,
-    'alpha': 0.6,
-    'beta': 0.4,
-    'beta_annealing': 3e-07,
-    'grad_clip': None,
-    'critic_updates_per_step': 20,
-    'start_steps': 5000,
-    'log_interval': 10,
-    'target_update_interval': 1,
-    'eval_interval': 1000,
-    'cuda': 0,
-    'seed': 0,
-    'eval_runs': 1,
-    'huber': 0,
-    'layer_norm': 1,
-    'target_entropy': -1.0,
-    'method': 'sac',
-    'target_drop_rate': 0.005,
-    'critic_update_delay': 1}
+configs = FISH_MOVING_CONFIG
 
 hidden_units=[256, 256]
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
