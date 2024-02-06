@@ -151,6 +151,7 @@ class SacAgentAsync:
         with open('buffer.pkl', 'wb') as file_handler:
             pkl.dump(self.memory, file_handler, protocol=pkl.HIGHEST_PROTOCOL)
 
+ 
     def load_models(self, resume_training_path):
         self.policy.load_state_dict(torch.load(os.path.join(resume_training_path, 'policy.pth')))
         self.critic.load_state_dict(torch.load(os.path.join(resume_training_path, 'critic.pth')))
@@ -246,11 +247,9 @@ class SacAgentAsync:
                     curr_q1, curr_q2 = self.calc_current_q(*batch)
                 target_q = self.calc_target_q(*batch)
                 error = (0.5 * torch.abs(curr_q1 - target_q) + 0.5 * torch.abs(curr_q2 - target_q)).item()
-                # We need to give true done signal with addition to masked done
                 # signal to calculate multi-step rewards.
                 self.memory.append(state, action, reward, next_state, masked_done, error, episode_done=done)
             else:
-                # We need to give true done signal with addition to masked done
                 # signal to calculate multi-step rewards.
                 self.memory.append(state, action, reward, next_state, masked_done, episode_done=done)
             state = next_state
@@ -278,7 +277,14 @@ class SacAgentAsync:
               f'episode steps: {self.episode_steps}  '
               f'reward: {self.episode_reward}')
         
+        # if self.episodes%35==0:
+        #     self.reset_sac_last_layer()
         
+    def reset_sac_last_layer(self):
+        self.policy.reset_last_layer()
+        self.critic.reset_last_layer()
+        self.critic_target.reset_last_layer()
+        # hard_update(self.critic_target, self.critic)
 
     def learn(self):
         self.learning_steps += 1
@@ -298,7 +304,6 @@ class SacAgentAsync:
 
                     update_params(self.q1_optim, self.critic.Q1, q1_loss, self.grad_clip)
                     update_params(self.q2_optim, self.critic.Q2, q2_loss, self.grad_clip)
-
 
                     if self.learning_steps % self.target_update_interval == 0:
                         soft_update(self.critic_target, self.critic, self.tau)

@@ -33,19 +33,21 @@ class QNetwork(BaseNetwork):
     def forward(self, x):
         q = self.Q(x)
         return q
+    
+    def reset_last_layer(self,num_actions):
+        self.Q[-1] = nn.Linear(self.Q[-1].in_features, num_actions).to(device=self.Q[-1].weight.device)
 
 class TwinnedQNetwork(BaseNetwork):
 
     def __init__(self, num_inputs, num_actions, hidden_units=[256, 256],
                  initializer='deltaorthogonal', layer_norm=0, drop_rate=0.0):
         super(TwinnedQNetwork, self).__init__()
-
+        self.num_actions = num_actions
+        self.initializer = initializer
         self.Q1 = QNetwork(
             num_inputs, num_actions, hidden_units, layer_norm=layer_norm, drop_rate=drop_rate)
         self.Q2 = QNetwork(
             num_inputs, num_actions, hidden_units, layer_norm=layer_norm, drop_rate=drop_rate)
-        # self.Q1.apply(weight_init,initializer=initializer)
-        # self.Q2.apply(weight_init,initializer=initializer)
         apply_weight_init(self.Q1,initializer=initializer)
         apply_weight_init(self.Q2,initializer=initializer)
 
@@ -54,6 +56,12 @@ class TwinnedQNetwork(BaseNetwork):
         q1 = self.Q1(x)
         q2 = self.Q2(x)
         return q1, q2
+    
+    def reset_last_layer(self):
+        self.Q1.reset_last_layer(self.num_actions)
+        self.Q2.reset_last_layer(self.num_actions)
+        apply_weight_init(self.Q1,initializer=self.initializer)
+        apply_weight_init(self.Q2,initializer=self.initializer)
 
 class GaussianPolicy(BaseNetwork):
     LOG_STD_MAX = 2
@@ -62,11 +70,11 @@ class GaussianPolicy(BaseNetwork):
 
     def __init__(self, num_inputs, num_actions, hidden_units=[256, 256],initializer='deltaorthogonal'):
         super(GaussianPolicy, self).__init__()
-
+        self.num_actions = num_actions
+        self.initializer = initializer
         # https://github.com/ku2482/rltorch/blob/master/rltorch/network/builder.py
         self.policy = create_linear_network(
             num_inputs, num_actions*2, hidden_units=hidden_units)
-
         apply_weight_init(self.policy,initializer=initializer)
 
 
@@ -93,3 +101,7 @@ class GaussianPolicy(BaseNetwork):
             entropies = -log_probs.sum(dim=1, keepdim=True)
 
         return actions, entropies, torch.tanh(means)
+    
+    def reset_last_layer(self):
+        self.policy[-1] = nn.Linear(self.policy[-1].in_features, self.num_actions*2).to(device=self.policy[-1].weight.device)
+        apply_weight_init(self.policy[-1], initializer=self.initializer)
