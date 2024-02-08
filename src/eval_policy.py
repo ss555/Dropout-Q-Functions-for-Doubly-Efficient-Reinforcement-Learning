@@ -5,15 +5,14 @@ python main.py -info sac -env Hopper-v2 -seed 0 -eval_every 1000 -frames 100000 
 python main.py -info drq -env FishStationary-v0 -seed 0 -eval_every 1000 -frames 100000 -eval_runs 10 -gpu_id 0 -critic_updates_per_step 20 -method sac -target_entropy 0 -target_drop_rate 0.005 -layer_norm 1
 '''
 import os
+import sys
+sys.path.insert(0, "./..")
 import argparse
 import datetime
 import gym
 from agent import SacAgent
 #from IQNagent import IQNSacAgent
 from rlutils.envs import *
-import os
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from model import GaussianPolicy
 import torch
 import gym
@@ -23,7 +22,7 @@ from CONFIG import *
 
 env_name='FishStationary-v0'
 # env_name='FishMovingTargetSpeed-v0'
-path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/KUCodebase/code/runs/droq/FishMovingTargetSpeed-v0_2023-11-08/model/policy.pth'
+path='/home/install/Project/00-current/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/logs/179/model/policy.pth'
 
 if env_name=='FishStationary-v0':
     configs = FISH_STATIONARY_CONFIG
@@ -77,16 +76,10 @@ for t, a, label, ly  in zip([obs_arr[:,1], obs_arr[:,2], acts], ax[:], axis_labe
     a.text(0.015, 0.95, f'{label})', transform=a.transAxes, fontsize=14, fontweight='bold', va='top')
     a.set_ylabel(ly)
 plt.xlabel('time steps')
-plt.savefig(f'./{env_name}_eval.pdf')
+os.makedirs('eval', exist_ok=True)
+plt.savefig(f'./eval/{env_name}_eval.pdf')
 plt.show()
 
-fig, ax = plt.subplots(3,1,sharex=True)
-fig.suptitle(f'droq:{np.sum(r_arr)}')
-ax[0].plot(acts)
-ax[1].plot(obs_arr[:,2])
-ax[2].plot(obs_arr[:,1])
-plt.xlabel('time step')
-plt.show()
 
 
 

@@ -34,7 +34,7 @@ FISH_MOVING_CONFIG={'num_steps': 100000,
 
 FISH_STATIONARY_CONFIG={'num_steps': 100000,
                'batch_size': 128,
-               'lr': 0.00003,
+               'lr': 0.0001,
                'scheduler': 'cosine',
                'hidden_units': [256, 256],
                'memory_size': 5000.0,
