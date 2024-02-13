@@ -5,24 +5,25 @@ python main.py -info sac -env Hopper-v2 -seed 0 -eval_every 1000 -frames 100000 
 python main.py -info drq -env FishStationary-v0 -seed 0 -eval_every 1000 -frames 100000 -eval_runs 10 -gpu_id 0 -critic_updates_per_step 20 -method sac -target_entropy 0 -target_drop_rate 0.005 -layer_norm 1
 '''
 import os
+import sys
+sys.path.insert(0, "../")
 import argparse
 import datetime
 import gym
-from agent import SacAgent
+from src.agent import SacAgent
+#from IQNagent import IQNSacAgent
 from rlutils.envs import *
-import os
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append(os.path.dirname('..'))
-from model import GaussianPolicy
+from src.model import GaussianPolicy
 import torch
 import gym
 from matplotlib import pyplot as plt
 import numpy as np
+from src.CONFIG import *
+import numpy as np
 from copy import deepcopy
 from rlutils.utils import config_paper
 from rlutils.env_wrappers import FishMovingRenderWrapper, VideoRecorderWrapper
-c= config_paper()
+c = config_paper()
 EP_STEPS = 768
 # path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/runs/droq/FishMovingTargetSpeed-v0_2023-11-08/model/policy.pth'
 path= '../eval/runs/FishMovingTargetSpeed-v0_2023-11-22/model/policy.pth'
@@ -45,9 +46,7 @@ r_arr, obs_arr, acts, consigne = [], [], [], []
 i = 0
 obs=env.reset()
 env.state = obs
-targets = [2,1.5,1,0.5,0]
-targets = [1,1.5,2,0.5,0]
-env.target = targets[0]
+env.target = 1
 c=0
 
 obs = np.zeros_like(obs)

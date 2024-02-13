@@ -23,6 +23,7 @@ from copy import deepcopy
 from rlutils.utils import config_paper
 from rlutils.env_wrappers import FishMovingRenderWrapper, VideoRecorderWrapper
 import moviepy.editor as mpy
+from CONFIG import *
 # from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
 c = config_paper()
@@ -32,35 +33,7 @@ EP_STEPS = 1000
 # path='./runs/FishMovingTargetSpeed-v0_2023-11-22/model/policy.pth'
 path= '../eval/runs/FishMovingTargetSpeedController-v0_2023-11-25/model/policy.pth'
 
-configs = {'num_steps': 100000,
-    'batch_size': 256,
-    'lr': 0.0003,
-    'hidden_units': [256, 256],
-    'memory_size': 1000000.0,
-    'gamma': 0.99,
-    'tau': 0.005,
-    'entropy_tuning': True,
-    'ent_coef': 0.2,
-    'multi_step': 1,
-    'per': 0,
-    'alpha': 0.6,
-    'beta': 0.4,
-    'beta_annealing': 3e-07,
-    'grad_clip': None,
-    'critic_updates_per_step': 20,
-    'start_steps': 5000,
-    'log_interval': 10,
-    'target_update_interval': 1,
-    'eval_interval': 1000,
-    'cuda': 0,
-    'seed': 0,
-    'eval_runs': 1,
-    'huber': 0,
-    'layer_norm': 1,
-    'target_entropy': -1.0,
-    'method': 'sac',
-    'target_drop_rate': 0.005,
-    'critic_update_delay': 1}
+configs = FISH_MOVING_CONFIG
 
 hidden_units=[256, 256]
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

@@ -26,6 +26,7 @@ for f in glob.glob(os.path.join(path, '*log_ep*')):
     total_rews.append(df['reward'].mean())
     dfs.append(df)
 assert dfs!=[], f'path: {path}'
+
 total_rews = np.array(total_rews)
 idx_max = np.argmax(total_rews)
 dfm = dfs[idx_max]

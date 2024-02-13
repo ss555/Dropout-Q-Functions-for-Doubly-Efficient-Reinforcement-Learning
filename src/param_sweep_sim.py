@@ -12,7 +12,6 @@ import socket
 from rlutils.linear_expe import make_red_yellow_env_speed, DummyconnectionEnv
 import multiprocessing as mp
 from rlutils.envs import * #register_envs
-from rlutils.env_wrappers import LoggerWrap
 
 def run():
 
@@ -24,13 +23,14 @@ def run():
 
     env = gym.make(env_name)
     os.makedirs('./logs', exist_ok=True)
+    os.makedirs('./logs/param_sweep', exist_ok=True)
+
     monitor_dir, _ = make_dir_exp(os.path.abspath(os.path.join(os.path.dirname(__file__), './logs')))
     print(monitor_dir)
     # env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
     env = TimeLimit(env, max_episode_steps=768)
     if env_name=='FishStationary-v0':
-        # configs = FISH_STATIONARY_CONFIG
-        configs = FISH_STATIONARY_CONFIG_test
+        configs = FISH_STATIONARY_CONFIG
     else:
         configs = FISH_MOVING_CONFIG
 

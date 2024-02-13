@@ -16,8 +16,8 @@ from rlutils.env_wrappers import LoggerWrap
 
 def run():
 
-    # env_name='FishMovingTargetSpeed-v0'
-    env_name='FishStationary-v0'
+    env_name='FishMovingTargetSpeed-v0'
+    # env_name='FishStationary-v0'
     # env_name='FishMovingTargetSpeedController-v0'
     # env_name='FishMoving-v0'
     # env_name='FishMovingVisualServoContinousSparse-v0'
@@ -29,8 +29,7 @@ def run():
     # env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
     env = TimeLimit(env, max_episode_steps=768)
     if env_name=='FishStationary-v0':
-        # configs = FISH_STATIONARY_CONFIG
-        configs = FISH_STATIONARY_CONFIG_test
+        configs = FISH_STATIONARY_CONFIG
     else:
         configs = FISH_MOVING_CONFIG
 
