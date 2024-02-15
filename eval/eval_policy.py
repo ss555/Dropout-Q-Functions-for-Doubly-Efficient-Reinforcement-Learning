@@ -22,21 +22,23 @@ from src.CONFIG import *
 from rlutils.plot_utils import fft_plot_ampltitude
 
 # env_name='FishStationary-v0'
-env_name='FishMoving-v0'
+env_name='Fish_Omega_obs_Fy_Fyd_action_newFx_param_continuous-v0'
+# env_name='FishMoving-v0'
 # env_name='FishMovingTargetSpeed-v0'#[x_dot, alpha, alpha_dot, x_dd, alpha_dd]
 
-if env_name=='FishStationary-v0':
+if env_name=='FishStationary-v0' or env_name=='Fish_Omega_obs_Fy_Fyd_action_newFx_param_continuous-v0':
     configs = FISH_STATIONARY_CONFIG
     path = '../logs/179/model/policy.pth'
     path = '../logs/180/model/policy.pth'
-    freq_arr_scan = np.arange(0.1, 2.5, 0.1)
+    freq_arr_scan = np.arange(0.1, 2.1, 0.1)
+    # freq_arr_scan = np.arange(0.1, 2.5, 0.05)
 elif env_name=='FishMoving-v0':
-    freq_arr_scan = np.arange(0.1, 2.5, 0.1)
+    freq_arr_scan = np.arange(0.1, 5, 0.1)
     configs = FISH_MOVING_CONFIG
     path = '/../eval/runs/FishMoving-v0_2023-06-19/model/policy.pth'
     path = '/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/eval/runs/FishMoving-v0_2023-06-19/model/policy.pth'
 elif env_name=='FishMovingTargetSpeed-v0':
-    freq_arr_scan = np.arange(0.1, 2.5, 0.1)
+    freq_arr_scan = np.arange(0.1, 2.1, 0.1)
     configs = FISH_MOVING_CONFIG
     path = '../eval/runs/FishMovingTargetSpeed-v0_2023-11-23/model/policy.pth'
 
@@ -87,7 +89,7 @@ obs_arr = np.array(obs_arr)
 # r_arr = r_arr[:400]
 # acts = acts[:400]
 
-if env_name=='FishStationary-v0':
+if env_name=='FishStationary-v0' or env_name=='Fish_Omega_obs_Fy_Fyd_action_newFx_param_continuous-v0':
     fig, ax = plt.subplots(3,1,figsize=(9,6),sharex=True)
     # Define labels for each subplot
     axis_labels = ['a', 'b', 'c']
