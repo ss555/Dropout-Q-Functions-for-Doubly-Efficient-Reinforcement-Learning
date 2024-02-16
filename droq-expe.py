@@ -1,7 +1,7 @@
 import os
 import argparse
 import datetime
-from agent import SacAgent
+from agent_async import SacAgentAsync
 from agent_async import SacAgentAsync
 from rlutils.utils import *
 import socket

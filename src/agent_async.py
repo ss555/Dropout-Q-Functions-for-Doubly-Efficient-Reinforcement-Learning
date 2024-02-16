@@ -13,6 +13,7 @@ import math
 import pickle as pkl
 import threading
 import time
+import json
 
 class SacAgentAsync:
     def __init__(self, env, log_dir, num_steps=3000000, batch_size=256,
@@ -152,18 +153,6 @@ class SacAgentAsync:
             pkl.dump(self.memory, file_handler, protocol=pkl.HIGHEST_PROTOCOL)
 
  
-    def load_models(self, resume_training_path):
-        self.policy.load_state_dict(torch.load(os.path.join(resume_training_path, 'policy.pth')))
-        self.critic.load_state_dict(torch.load(os.path.join(resume_training_path, 'critic.pth')))
-        self.critic_target.load_state_dict(torch.load(os.path.join(resume_training_path, 'critic_target.pth')))
-        try:
-            self.alpha_optim.load_state_dict(torch.load(os.path.join(resume_training_path, 'alpha_optim.pth')))
-        except:
-            traceback.print_exc()
-        try:
-            self.load_buffer(os.path.join(resume_training_path, 'buffer.npz'))
-        except:
-            traceback.print_exc()
 
     def run(self):
         while True:
@@ -453,10 +442,47 @@ class SacAgentAsync:
 
 
     def save_models(self,prefix=''):
+        data = self.__dict__.copy()
+        if 'env' in data:
+            del data['env']
+        # Saving the dictionary to a file
+        with open(os.path.join(self.model_dir,'data.json'), 'w') as handle:
+            json.dump(data, handle)
+
         self.policy.save(os.path.join(self.model_dir, f'{prefix}policy.pth'))
         self.critic.save(os.path.join(self.model_dir, f'{prefix}critic.pth'))
         self.critic_target.save(os.path.join(self.model_dir, f'{prefix}critic_target.pth'))
         torch.save(self.alpha_optim.state_dict(),os.path.join(self.model_dir, f'{prefix}alpha_optim.pth'))
+        torch.save(self.q1_optim.state_dict(),os.path.join(self.model_dir, f'{prefix}alpha_optim.pth'))
+        torch.save(self.q1_optim.state_dict(),os.path.join(self.model_dir, f'{prefix}alpha_optim.pth'))
+
+
+
+    def load_models(self, resume_training_path):
+        # try:
+        self.policy.load_state_dict(torch.load(os.path.join(resume_training_path, 'policy.pth')))
+        self.critic.load_state_dict(torch.load(os.path.join(resume_training_path, 'critic.pth')))
+        self.critic_target.load_state_dict(torch.load(os.path.join(resume_training_path, 'critic_target.pth')))
+        try:
+            self.alpha_optim.load_state_dict(torch.load(os.path.join(resume_training_path, 'alpha_optim.pth')))
+        except:
+            traceback.print_exc()
+        try:
+            self.load_buffer(os.path.join(resume_training_path, 'buffer.npz'))
+        except:
+            traceback.print_exc()
+        # except:
+        #     self.policy.load_state_dict(torch.load(os.path.join(resume_training_path, 'final_policy.pth')))
+        #     self.critic.load_state_dict(torch.load(os.path.join(resume_training_path, 'final_critic.pth')))
+        #     self.critic_target.load_state_dict(torch.load(os.path.join(resume_training_path, 'final_critic_target.pth')))
+        #     try:
+        #         self.alpha_optim.load_state_dict(torch.load(os.path.join(resume_training_path, 'final_alpha_optim.pth')))
+        #     except:
+        #         traceback.print_exc()
+        #     try:
+        #         self.load_buffer(os.path.join(resume_training_path, 'buffer.npz'))
+        #     except:
+        #         traceback.print_exc()
 
     def __del__(self):
         self.writer.close()

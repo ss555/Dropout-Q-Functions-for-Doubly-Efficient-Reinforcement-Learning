@@ -1,4 +1,4 @@
-from agent import SacAgent
+from agent_async import SacAgentAsync
 from rlutils.env_wrappers import LoggerWrap
 from rlutils.utils import *
 from rlutils.envs import *

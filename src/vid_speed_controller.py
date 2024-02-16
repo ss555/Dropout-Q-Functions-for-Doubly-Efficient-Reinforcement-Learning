@@ -8,7 +8,7 @@ import os
 import argparse
 import datetime
 import gym
-from agent import SacAgent
+from agent_async import SacAgentAsync
 from rlutils.envs import *
 import os
 import sys

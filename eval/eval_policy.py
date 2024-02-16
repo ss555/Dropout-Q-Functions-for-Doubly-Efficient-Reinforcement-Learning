@@ -10,7 +10,7 @@ sys.path.insert(0, "../")
 import argparse
 import datetime
 import gym
-from src.agent import SacAgent
+from src.agent_async import SacAgentAsync
 from rlutils.envs import *
 from rlutils.env_wrappers import FishMovingRenderWrapper,RlTrainer
 from src.model import GaussianPolicy
