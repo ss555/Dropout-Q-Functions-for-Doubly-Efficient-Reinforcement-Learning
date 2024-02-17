@@ -1,4 +1,6 @@
 import os
+
+import dill
 import numpy as np
 import torch
 from torch.optim import Adam
@@ -14,6 +16,7 @@ import pickle as pkl
 import threading
 import time
 import json
+from cs285.infrastructure.utils import *
 
 class SacAgentAsync:
     def __init__(self, env, log_dir, num_steps=3000000, batch_size=256,
@@ -152,12 +155,11 @@ class SacAgentAsync:
         with open('buffer.pkl', 'wb') as file_handler:
             pkl.dump(self.memory, file_handler, protocol=pkl.HIGHEST_PROTOCOL)
 
- 
-
     def run(self):
         while True:
             self.train_episode()
             if self.steps > self.num_steps:
+                print(f'Finishing at {self.steps} steps> {self.num_steps}, episode {self.episodes}')
                 break
 
     def is_update(self):
@@ -442,48 +444,59 @@ class SacAgentAsync:
 
 
     def save_models(self,prefix=''):
+        print(f'saving models at {self.model_dir}')
+        import dill
         data = self.__dict__.copy()
-        if 'env' in data:
-            del data['env']
-        # Saving the dictionary to a file
-        with open(os.path.join(self.model_dir,'data.json'), 'w') as handle:
-            json.dump(data, handle)
+        exclude_keys = ['env', 'writer', 'summary_dir']
+        for k in data.keys():
+            if not dill.pickles(data[k]):
+                exclude_keys.append(k)
 
-        self.policy.save(os.path.join(self.model_dir, f'{prefix}policy.pth'))
-        self.critic.save(os.path.join(self.model_dir, f'{prefix}critic.pth'))
-        self.critic_target.save(os.path.join(self.model_dir, f'{prefix}critic_target.pth'))
-        torch.save(self.alpha_optim.state_dict(),os.path.join(self.model_dir, f'{prefix}alpha_optim.pth'))
-        torch.save(self.q1_optim.state_dict(),os.path.join(self.model_dir, f'{prefix}alpha_optim.pth'))
-        torch.save(self.q1_optim.state_dict(),os.path.join(self.model_dir, f'{prefix}alpha_optim.pth'))
+        for k in exclude_keys:
+            if k in data.keys():
+                del data[k]
+        # # Saving the dictionary to a file
+        with open(os.path.join(self.model_dir, 'data.pkl'), "wb") as file_handler:
+            pkl.dump(data, file_handler, protocol=pkl.HIGHEST_PROTOCOL)
 
+        # Create a dictionary to hold all the model states and optimizer states
+        # state_dicts = {
+        #     'policy_state_dict': self.policy.state_dict(),
+        #     'critic_state_dict': self.critic.state_dict(),
+        #     'critic_target_state_dict': self.critic_target.state_dict(),
+        #     'alpha_optim_state_dict': self.alpha_optim.state_dict(),
+        #     'alpha_state_dict': self.alpha.to('cpu').detach().numpy(),
+        #     'q1_optim_state_dict': self.q1_optim.state_dict(),
+        #     'q2_optim_state_dict': self.q2_optim.state_dict(),
+        # }
+        #
+        # # Save the combined state dictionaries to a single file
+        # torch.save(state_dicts, os.path.join(self.model_dir, f'{prefix}all_models.pth'))
+        self.save_buffer()
 
-
-    def load_models(self, resume_training_path):
-        # try:
-        self.policy.load_state_dict(torch.load(os.path.join(resume_training_path, 'policy.pth')))
-        self.critic.load_state_dict(torch.load(os.path.join(resume_training_path, 'critic.pth')))
-        self.critic_target.load_state_dict(torch.load(os.path.join(resume_training_path, 'critic_target.pth')))
-        try:
-            self.alpha_optim.load_state_dict(torch.load(os.path.join(resume_training_path, 'alpha_optim.pth')))
-        except:
-            traceback.print_exc()
-        try:
-            self.load_buffer(os.path.join(resume_training_path, 'buffer.npz'))
-        except:
-            traceback.print_exc()
-        # except:
-        #     self.policy.load_state_dict(torch.load(os.path.join(resume_training_path, 'final_policy.pth')))
-        #     self.critic.load_state_dict(torch.load(os.path.join(resume_training_path, 'final_critic.pth')))
-        #     self.critic_target.load_state_dict(torch.load(os.path.join(resume_training_path, 'final_critic_target.pth')))
-        #     try:
-        #         self.alpha_optim.load_state_dict(torch.load(os.path.join(resume_training_path, 'final_alpha_optim.pth')))
-        #     except:
-        #         traceback.print_exc()
-        #     try:
-        #         self.load_buffer(os.path.join(resume_training_path, 'buffer.npz'))
-        #     except:
-        #         traceback.print_exc()
-
+    def load_models(self, path):
+        print(f'loading models from {path}')
+        exclude=['steps','episodes','num_steps','env','writer','summary_dir']
+        with open(os.path.join(path, 'data.pkl'), "rb") as file_handler:
+            data = pkl.load(file_handler)
+            for k in exclude:
+                if k in data:
+                    del data[k]
+            self.__dict__.update(data)
+        self.load_buffer(path)
+        # Load the saved state dictionaries
+        # state_dicts = torch.load(os.path.join(resume_training_path, 'all_models.pth'))
+        # # Restore the states for each model component and optimizer
+        # self.policy.load_state_dict(state_dicts['policy_state_dict'])
+        # self.critic.load_state_dict(state_dicts['critic_state_dict'])
+        # self.critic_target.load_state_dict(state_dicts['critic_target_state_dict'])
+        # self.alpha_optim.load_state_dict(state_dicts['alpha_optim_state_dict'])
+        # self.q1_optim.load_state_dict(state_dicts['q1_optim_state_dict'])
+        # self.q2_optim.load_state_dict(state_dicts['q2_optim_state_dict'])
+        #
+        # # For the `alpha` tensor, you would directly replace it since it's a tensor, not a state dict
+        # self.alpha = torch.tensor(state_dicts['alpha_state_dict'], dtype=torch.float32)
+        # self.alpha = self.alpha.to(self.device)
     def __del__(self):
         self.writer.close()
         self.env.close()

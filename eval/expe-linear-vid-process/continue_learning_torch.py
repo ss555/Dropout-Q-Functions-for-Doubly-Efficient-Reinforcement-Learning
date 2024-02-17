@@ -16,7 +16,9 @@ from rlutils.env_wrappers import LoggerWrap
 
 def run():
 
-    resume_path=os.path.join(os.path.dirname(__file__),'./logs/3/model')
+    resume_path=os.path.join(os.path.dirname(__file__),'./logs/17/model')
+    resume_path= '/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/eval/expe-linear-vid-process/logs/23/model'
+
     # resume_path=None
     # Open a file in binary write mode
     env_name='FishMovingTargetSpeed-v0'
@@ -35,7 +37,8 @@ def run():
         configs = FISH_STATIONARY_CONFIG
     else:
         configs = FISH_MOVING_CONFIG
-    configs['num_steps'] = 5e3
+    # configs['num_steps'] = 10e3
+    configs['num_steps'] = 15000
     try:
         env._max_episode_steps = env.wrapped_env._max_episode_steps
     except:
@@ -46,7 +49,7 @@ def run():
         if resume_path!=None:
             agent.load_models(resume_path)
     except:
-        traceback
+        traceback.print_exc()
 
     configs.update({'env_name': env_name, 'agent':agent.__class__.__name__})
     save_yaml_dict(configs, os.path.join(monitor_dir, 'configs.yaml'))
