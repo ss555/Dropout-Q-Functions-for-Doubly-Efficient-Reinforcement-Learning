@@ -1,7 +1,8 @@
 import os
+import sys
+sys.path.append(os.path.abspath('./src/'))
 import argparse
 import datetime
-from agent_async import SacAgentAsync
 from agent_async import SacAgentAsync
 from rlutils.utils import *
 import socket
@@ -9,9 +10,11 @@ from rlutils.linear_expe import make_red_yellow_env_speed, DummyconnectionEnv
 import multiprocessing as mp
 from rlutils.envs import * #register_envs
 from rlutils.env_wrappers import LoggerWrap
+from CONFIGS import config_EXPE
 
 tau = 0.05
 len_episode = 128
+PHI= 40
 
 def run():
     set_high_priority()
@@ -32,7 +35,7 @@ def run():
     # connect to the server
     s.connect((HOST, PORT))
     # MAXIMIZE SPEED ENV
-    env, params = make_red_yellow_env_speed(vid, s, monitor_dir, len_episode=len_episode, tau=tau, discrete_actions=False, phi=40, sb3=False)
+    env, params = make_red_yellow_env_speed(vid, s, monitor_dir, len_episode=len_episode, tau=tau, discrete_actions=False, phi=PHI, sb3=False)
 
     #UNCOMMENT FOR DUMMY ENV
     # dummy ENV
@@ -40,38 +43,9 @@ def run():
     # env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
     # env = TimeLimit(env, max_episode_steps=len_episode)
 
-    configs = {'per': 1,
-    'gradients_step': 2*len_episode,#20,
-    'num_steps': 100000,
-    'batch_size': 256,#512,#256,
-    'lr': 0.0003,
-    'hidden_units': [256, 256],
-    'memory_size': 1000000.0,
-    'gamma': 0.99,
-    'tau': 0.005,
-    'entropy_tuning': True,
-    'ent_coef': 0.2,
-    'multi_step': 1,    
-    'alpha': 0.6,
-    'beta': 0.4,
-    'beta_annealing': 3e-07,
-    'grad_clip': None,
-    'critic_updates_per_step': 20,#20,
-    'eval_episodes_interval': 50,    
-    'start_steps': 500,
-    'log_interval': 10,
-    'target_update_interval': 1,
-    'eval_interval': 1000,
-    'cuda': 0,
-    'seed': 0,
-    'eval_runs': 1,
-    'huber': 0,
-    'layer_norm': 1,
-    'target_entropy': -1.0,
-    'method': 'sac',
-    'target_drop_rate': 0.005,
-    'log_dir': monitor_dir,
-    'critic_update_delay': 1}
+    configs=config_EXPE
+    configs.update({'log_dir': monitor_dir})
+    configs.update({'gradients_step': 2 * len_episode})
     resume_training_path='./logs/152/model'#None#'./logs-fish/138/model'#105
     configs.update({'resume_training_path': resume_training_path})
     save_yaml_dict(configs, os.path.join(monitor_dir, 'configs.yaml'))

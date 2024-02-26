@@ -12,7 +12,7 @@ import datetime
 import gym
 from src.agent_async import SacAgentAsync
 from rlutils.envs import *
-from rlutils.env_wrappers import FishMovingRenderWrapper,RlTrainer
+from rlutils.env_wrappers import FishMovingRenderWrapper, RlTrainer
 from src.model import GaussianPolicy
 import torch
 import gym
@@ -27,8 +27,7 @@ env_name='Fish_Omega_obs_Fy_Fyd_action_newFx_param_continuous-v0'
 # env_name='FishMovingTargetSpeed-v0'#[x_dot, alpha, alpha_dot, x_dd, alpha_dd]
 
 if env_name=='FishStationary-v0' or env_name=='Fish_Omega_obs_Fy_Fyd_action_newFx_param_continuous-v0':
-    configs = FISH_STATIONARY_CONFIG
-    path = '../logs/179/model/policy.pth'
+    configs = FISH_STATIONARY_CONFIG#path = '../logs/179/model/policy.pth'
     path = '../logs/180/model/policy.pth'
     freq_arr_scan = np.arange(0.1, 2.1, 0.1)
     # freq_arr_scan = np.arange(0.1, 2.5, 0.05)
@@ -46,7 +45,6 @@ hidden_units=[256, 256]
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 env = gym.make(env_name)
-
 policy = GaussianPolicy(
             env.observation_space.shape[0],
             env.action_space.shape[0],
@@ -80,8 +78,7 @@ maxfreq = fft_plot_ampltitude(np.array(acts),dt)
 print(f'using sampling time: {dt}')
 #freq forcing and plot the RL reward
 trainer = RlTrainer(env=env)
-trainer.mode_freq_forcing(freq_arr=freq_arr_scan, freq_rl=maxfreq, rew_rl=r_arr.sum(),
-                          plt_save_name= f'./eval/{env_name}_eval_fscan.pdf',dt=dt)
+trainer.mode_freq_forcing(freq_arr=freq_arr_scan, freq_rl=maxfreq, rew_rl=r_arr.sum(), plt_save_name= f'./eval/{env_name}_eval_fscan.pdf',dt=dt)
 
 #take the first 400 steps
 obs_arr = np.array(obs_arr)

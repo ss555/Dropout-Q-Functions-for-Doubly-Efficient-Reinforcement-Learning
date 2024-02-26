@@ -476,14 +476,19 @@ class SacAgentAsync:
 
     def load_models(self, path):
         print(f'loading models from {path}')
-        exclude=['steps','episodes','num_steps','env','writer','summary_dir']
-        with open(os.path.join(path, 'data.pkl'), "rb") as file_handler:
-            data = pkl.load(file_handler)
-            for k in exclude:
-                if k in data:
-                    del data[k]
-            self.__dict__.update(data)
-        self.load_buffer(path)
+        try:
+            exclude=['steps','episodes','num_steps','env','writer','summary_dir']
+            with open(os.path.join(path, 'data.pkl'), "rb") as file_handler:
+                data = pkl.load(file_handler)
+                for k in exclude:
+                    if k in data:
+                        del data[k]
+                self.__dict__.update(data)
+            self.load_buffer(path)
+        except Exception as e:
+            print(f'error loading models from {path}')
+            print(e)
+            traceback.print_exc()
         # Load the saved state dictionaries
         # state_dicts = torch.load(os.path.join(resume_training_path, 'all_models.pth'))
         # # Restore the states for each model component and optimizer
