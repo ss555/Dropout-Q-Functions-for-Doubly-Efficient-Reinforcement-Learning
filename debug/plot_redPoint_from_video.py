@@ -53,7 +53,7 @@ def process_video_moving_cxy(f, mark_frames_save=False):
 
 fig,ax = plt.subplots()
 #plot RL from video
-rl_path='/home/sardor/1-THESE/4-sample_code/00-current/Dropout-Q-Functions-for-Doubly-Efficient-Reinforcement-Learning/logs/152/ep-203-vid-.mp4'
+rl_path= '/logs/logs_phi_30/152/ep-203-vid-.mp4'
 cx_run, cy_arr = process_video_moving_cxy(rl_path)
 plt.plot(cx_run)
 plt.show()

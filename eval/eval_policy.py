@@ -76,6 +76,7 @@ obs_arr, r_arr, acts = np.array(obs_arr), np.array(r_arr), np.array(acts)
 dt = env.tau if hasattr(env, 'tau') else 0.02
 maxfreq = fft_plot_ampltitude(np.array(acts),dt)
 print(f'using sampling time: {dt}')
+
 #freq forcing and plot the RL reward
 trainer = RlTrainer(env=env)
 trainer.mode_freq_forcing(freq_arr=freq_arr_scan, freq_rl=maxfreq, rew_rl=r_arr.sum(), plt_save_name= f'./eval/{env_name}_eval_fscan.pdf',dt=dt)

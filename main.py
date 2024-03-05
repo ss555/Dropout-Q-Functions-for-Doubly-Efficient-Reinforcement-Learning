@@ -13,13 +13,13 @@ from rlutils.linear_expe import make_red_yellow_env_speed, DummyconnectionEnv
 import multiprocessing as mp
 from rlutils.envs import * #register_envs
 from rlutils.env_wrappers import LoggerWrap
+from gym.wrappers import NormalizeObservation, NormalizeReward
 
 def run():
-
     # env_name='FishMovingTargetSpeed-v0'
-    env_name='FishStationary-v0'
+    # env_name='FishStationary-v0'
     # env_name='FishMovingTargetSpeedController-v0'
-    # env_name='FishMoving-v0'
+    env_name='FishMoving-v0'
     # env_name='FishMovingVisualServoContinousSparse-v0'
 
     env = gym.make(env_name)
@@ -39,11 +39,10 @@ def run():
     except:
         env._max_episode_steps = configs['gradients_step']
 
+    configs.update({'gradients_step': 2 * 768})
     agent = SacAgentAsync(env=env, log_dir=monitor_dir, **configs)
     configs.update({'env_name': env_name,'agent':agent.__class__.__name__})
     save_yaml_dict(configs, os.path.join(monitor_dir, 'configs.yaml'))
-
-
     try:
         agent.run()
     except:

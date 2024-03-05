@@ -26,7 +26,7 @@ def run():
     configs.update({'gradients_step': 2 * len_episode})
 
 
-    resume_training_path='./logs/152/model'
+    resume_training_path= 'logs/logs_phi_30/152/model'
     resume_training_path=None
     agent = SacAgentAsync(env=env, resume_training_path=resume_training_path,**configs)
     agent.writer.add_text('metrics', json.dumps(configs, indent=4), 0)

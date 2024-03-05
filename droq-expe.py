@@ -12,6 +12,7 @@ from rlutils.envs import * #register_envs
 from rlutils.env_wrappers import LoggerWrap
 from CONFIGS import config_EXPE
 
+
 tau = 0.05
 len_episode = 128
 PHI= 40
@@ -46,7 +47,7 @@ def run():
     configs=config_EXPE
     configs.update({'log_dir': monitor_dir})
     configs.update({'gradients_step': 2 * len_episode})
-    resume_training_path='./logs/152/model'#None#'./logs-fish/138/model'#105
+    resume_training_path= 'logs/logs_phi_30/152/model'  #None#'./logs-fish/138/model'#105
     configs.update({'resume_training_path': resume_training_path})
     save_yaml_dict(configs, os.path.join(monitor_dir, 'configs.yaml'))
     
