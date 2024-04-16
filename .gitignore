@@ -9,6 +9,7 @@
 /runsA
 
 ./t.py
+**/misc
 **/*.mp4
 **/*.csv
 **/*events.out*

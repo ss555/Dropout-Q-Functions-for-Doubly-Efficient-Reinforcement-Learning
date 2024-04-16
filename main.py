@@ -1,3 +1,4 @@
+
 import sys
 import os
 sys.path.append(os.path.abspath('./src/'))
@@ -29,7 +30,6 @@ def run():
     # env = LoggerWrap(env, path=monitor_dir, pickle_images=False)
     env = TimeLimit(env, max_episode_steps=768)
     if env_name=='FishStationary-v0':
-        # configs = FISH_STATIONARY_CONFIG
         configs = FISH_STATIONARY_CONFIG_test
     else:
         configs = FISH_MOVING_CONFIG
